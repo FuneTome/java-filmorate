@@ -32,7 +32,9 @@ public class UserController {
             throw new ValidationException("Валидация пользователя не пройдена");
         }
         user.setId(getNextId());
-        if (user.getName() == null) { user.setName(user.getLogin()); }
+        if (user.getName() == null) {
+            user.setName(user.getLogin());
+        }
         users.put(user.getId(), user);
         logger.log(Level.INFO, "Пользователь добавлен: " + user.getId());
         return user;
