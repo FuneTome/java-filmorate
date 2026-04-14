@@ -9,7 +9,6 @@ import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,12 +58,12 @@ public class UserService {
     }
 
     public User addFriend(Long id, Long friendId) {
-        if(!isValidId(id)){
+        if (!isValidId(id)) {
             throw new NotFoundException("Юзер с id = " + id + " не найден");
-        } else if(!isValidId(friendId)) {
+        } else if (!isValidId(friendId)) {
             throw new NotFoundException("Юзер с id = " + friendId + " не найден");
         } else {
-            if(imus.getUsers().get(id).addFriend(friendId)){
+            if (imus.getUsers().get(id).addFriend(friendId)) {
                 imus.getUsers().get(friendId).addFriend(id);
             } else {
                 throw new NotFoundException("Такой человек уже есть в списке друзей");
@@ -99,9 +98,9 @@ public class UserService {
     }
 
     public void deleteFriend(Long id, Long friendId) {
-        if(!isValidId(id)){
+        if (!isValidId(id)) {
             throw new NotFoundException("Юзер с id = " + id + " не найден");
-        } else if(!isValidId(friendId)) {
+        } else if (!isValidId(friendId)) {
             throw new NotFoundException("Юзер с id = " + friendId + " не найден");
         } else {
             imus.getUsers().get(id).removeFriend(friendId);
