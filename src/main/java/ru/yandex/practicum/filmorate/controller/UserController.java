@@ -13,7 +13,9 @@ import java.util.Collection;
 public class UserController {
     private UserService userService;
 
-    public UserController(UserService userService) { this.userService = userService; }
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public Collection<User> getUsers() {
@@ -21,7 +23,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id) { return userService.getUser(id); }
+    public User getUser(@PathVariable Long id) {
+        return userService.getUser(id);
+    }
 
     @GetMapping("/{id}/friends")
     public Collection<User> getFriends(@PathVariable Long id) {
