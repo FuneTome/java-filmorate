@@ -63,9 +63,9 @@ public class FilmService {
     }
 
     public Film addLike(Long id, Long userId) {
-        if(!isValidId(id)){
+        if (!isValidId(id)) {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        } else if(!imus.getUsers().containsKey(userId)) {
+        } else if (!imus.getUsers().containsKey(userId)) {
             throw new NotFoundException("Юзер с id = " + userId + " не найден");
         } else {
             if (!imfs.getFilms().get(id).addLike(userId)) {
@@ -76,12 +76,12 @@ public class FilmService {
     }
 
     public void deleteLike(Long id, Long userId) {
-        if(!isValidId(id)){
+        if (!isValidId(id)) {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        } else if(!imus.getUsers().containsKey(userId)) {
+        } else if (!imus.getUsers().containsKey(userId)) {
             throw new NotFoundException("Юзер с id = " + userId + " не найден");
         } else {
-            if(!imfs.getFilms().get(id).removeLike(userId)) {
+            if (!imfs.getFilms().get(id).removeLike(userId)) {
                 throw new NotFoundException("Такой человек не ставил лайк");
             }
         }
