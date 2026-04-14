@@ -11,13 +11,13 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNotFound (NotFoundException e) {
+    public ErrorResponse handleNotFound(NotFoundException e) {
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleValidation (ValidationException e) {
+    public ErrorResponse handleValidation(ValidationException e) {
         return new ErrorResponse(e.getMessage());
     }
 }
