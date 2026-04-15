@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -16,46 +16,38 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class FilmService {
-    private InMemoryFilmStorage imfs;
-    private InMemoryUserStorage imus;
-    private final LocalDate firstFilmDate = LocalDate.of(1895, 12, 28);
+    private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
+    private final static LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
 
-    public FilmService(InMemoryFilmStorage imfs, InMemoryUserStorage imus) {
-        this.imfs = imfs;
-        this.imus = imus;
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+        this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
     }
 
     public Collection<Film> getFilms() {
-        return imfs.getFilms().values();
+        return filmStorage.getFilms().values();
     }
 
     public Film addFilm(Film film) {
-        if (!isValid(film)) {
-            log.warn("Валидация фильма не пройдена");
-            throw new ValidationException("Валидация фильма не пройдена");
-        }
-        return imfs.addFilm(film);
+        isValid(film);
+        return filmStorage.addFilm(film);
     }
 
     public Film updateFilm(Film newFilm) {
         if (newFilm.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
-        if (!imfs.getFilms().containsKey(newFilm.getId())) {
+        if (!filmStorage.getFilms().containsKey(newFilm.getId())) {
             throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
-        } else {
-            if (isValid(newFilm)) {
-                Film oldFilm = imfs.getFilms().get(newFilm.getId());
-                return imfs.updateFilm(oldFilm, newFilm);
-            } else {
-                log.warn("Валидация фильма при обновлении не пройдена");
-                throw new ValidationException("Валидация фильма при обновлении не пройдена");
-            }
         }
+        isValid(newFilm);
+        Film oldFilm = filmStorage.getById(newFilm.getId());
+        return filmStorage.updateFilm(oldFilm, newFilm);
     }
 
     public Collection<Film> getListFilm(int count) {
-        List<Film> sortedFilms = imfs.getFilms().values().stream()
+        List<Film> sortedFilms = filmStorage.getFilms().values().stream()
                 .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
                 .limit(count)
                 .collect(Collectors.toList());
@@ -63,49 +55,36 @@ public class FilmService {
     }
 
     public Film addLike(Long id, Long userId) {
-        if (!isValidId(id)) {
+        if (!filmStorage.findById(id)) {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        } else if (!imus.getUsers().containsKey(userId)) {
-            throw new NotFoundException("Юзер с id = " + userId + " не найден");
-        } else {
-            if (!imfs.getFilms().get(id).addLike(userId)) {
-                throw new NotFoundException("Такой человек уже ставил лайк");
-            }
-            return imfs.getFilms().get(id);
         }
+        if (!userStorage.findById(userId)) {
+            throw new NotFoundException("Юзер с id = " + userId + " не найден");
+        }
+        if (!filmStorage.getById(id).addLike(userId)) {
+            throw new NotFoundException("Такой человек уже ставил лайк");
+        }
+        return filmStorage.getFilms().get(id);
     }
 
     public void deleteLike(Long id, Long userId) {
-        if (!isValidId(id)) {
+        if (!filmStorage.findById(id)) {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        } else if (!imus.getUsers().containsKey(userId)) {
+        }
+        if (!userStorage.findById(userId)) {
             throw new NotFoundException("Юзер с id = " + userId + " не найден");
-        } else {
-            if (!imfs.getFilms().get(id).removeLike(userId)) {
-                throw new NotFoundException("Такой человек не ставил лайк");
-            }
+        }
+        if (!filmStorage.getById(id).removeLike(userId)) {
+            throw new NotFoundException("Такой человек не ставил лайк");
         }
     }
 
-    public boolean isValid(Film film) {
-        try {
-            if (film.getReleaseDate().isBefore(firstFilmDate)) {
-                throw new ValidationException("Дата релиза должна быть после 28 декабря 1895 года");
-            } else if (film.getDuration() < 0) {
-                throw new ValidationException("Длительность должна быть положительной");
-            } else {
-                return true;
-            }
-        } catch (ValidationException e) {
-            log.error(e.getMessage(), e);
-            return false;
+    public void isValid(Film film) {
+        if (film.getReleaseDate().isBefore(FIRST_FILM_DATE)) {
+            throw new ValidationException("Дата релиза должна быть после 28 декабря 1895 года");
         }
-    }
-
-    private boolean isValidId(Long id) {
-        if (imfs.getFilms().containsKey(id)) {
-            return true;
+        if (film.getDuration() < 0) {
+            throw new ValidationException("Длительность должна быть положительной");
         }
-        return false;
     }
 }

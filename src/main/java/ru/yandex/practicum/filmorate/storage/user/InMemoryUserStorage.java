@@ -18,9 +18,6 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User addUser(User user) {
         user.setId(id);
-        if (user.getName() == null) {
-            user.setName(user.getLogin());
-        }
         users.put(id++, user);
         log.info("Пользователь добавлен: " + user.getId());
         return user;
@@ -32,7 +29,18 @@ public class InMemoryUserStorage implements UserStorage {
         oldUser.setLogin(newUser.getLogin());
         oldUser.setName(newUser.getName());
         oldUser.setBirthday(newUser.getBirthday());
+        users.put(oldUser.getId(), oldUser);
         log.info("Пользователь обновлен: " + newUser.getId());
         return newUser;
+    }
+
+    @Override
+    public boolean findById(Long id) {
+        return users.containsKey(id);
+    }
+
+    @Override
+    public User getById(Long id) {
+        return users.get(id);
     }
 }

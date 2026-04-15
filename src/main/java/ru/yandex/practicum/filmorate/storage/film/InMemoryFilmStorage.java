@@ -21,6 +21,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         oldFilm.setDescription(newFilm.getDescription());
         oldFilm.setReleaseDate(newFilm.getReleaseDate());
         oldFilm.setDuration(newFilm.getDuration());
+        films.put(oldFilm.getId(), oldFilm);
         log.info("Фильм обновлен: {}", newFilm.getId());
         return oldFilm;
     }
@@ -31,5 +32,15 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.put(id++, film);
         log.info("Фильм добавлен: {}", film.getId());
         return film;
+    }
+
+    @Override
+    public boolean findById(Long id) {
+        return films.containsKey(id);
+    }
+
+    @Override
+    public Film getById(Long id) {
+        return films.get(id);
     }
 }
