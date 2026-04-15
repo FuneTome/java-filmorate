@@ -9,7 +9,6 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -87,7 +86,7 @@ public class UserService {
         Set<Long> friendsOfId = userStorage.getById(id).getFriends();
         Set<Long> friendsOfOtherId = userStorage.getById(otherId).getFriends();
 
-        if(friendsOfId == null || friendsOfOtherId == null) {
+        if (friendsOfId == null || friendsOfOtherId == null) {
             return null;
         }
         Set<Long> intersection = friendsOfId.stream()
