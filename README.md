@@ -26,7 +26,7 @@ WHERE u.id IN (
     SELECT user_id FROM friendship WHERE friend_id = 1 AND friendship_status_id = 2
 );
 ```
-!!!
+
 #### 3. Получение общих друзей двух пользователей
 ```sql
 SELECT DISTINCT u.*
