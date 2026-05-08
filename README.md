@@ -2,7 +2,7 @@
 Template repository for Filmorate project.
 
 ## Схема базы данных
-![Схема БД](database_diagram.svg)
+![Схема БД](diagram.svg)
 
 ### Примеры SQL-запросов для основных операций
 

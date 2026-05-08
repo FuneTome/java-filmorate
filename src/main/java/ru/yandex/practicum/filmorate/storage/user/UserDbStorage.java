@@ -1,4 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-public class UserDbStorage {
+public class UserDbStorage implements UserStorage {
+
 }
