@@ -1,18 +1,15 @@
-INSERT INTO Rating VALUES (1, 'G');
-INSERT INTO Rating VALUES (2, 'PG');
-INSERT INTO Rating VALUES (3, 'PG_13');
-INSERT INTO Rating VALUES (4, 'R');
-INSERT INTO Rating VALUES (5, 'NC-17');
+MERGE INTO Rating (rating_id, name) KEY(rating_id) VALUES (1, 'G');
+MERGE INTO Rating (rating_id, name) KEY(rating_id) VALUES (2, 'PG');
+MERGE INTO Rating (rating_id, name) KEY(rating_id) VALUES (3, 'PG-13');
+MERGE INTO Rating (rating_id, name) KEY(rating_id) VALUES (4, 'R');
+MERGE INTO Rating (rating_id, name) KEY(rating_id) VALUES (5, 'NC-17');
 
-INSERT INTO Genre VALUES (1, 'COMEDY');
-INSERT INTO Genre VALUES (2, 'DRAMA');
-INSERT INTO Genre VALUES (3, 'CARTOON');
-INSERT INTO Genre VALUES (4, 'THRILLER');
-INSERT INTO Genre VALUES (5, 'DOCUMENTARY');
-INSERT INTO Genre VALUES (6, 'ACTION');
-INSERT INTO Genre VALUES (7, 'FANTASY');
-INSERT INTO Genre VALUES (8, 'MUSICAL');
-INSERT INTO Genre VALUES (9, 'MYSTERY');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (1, 'Комедия');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (2, 'Драма');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (3, 'Мультфильм');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (4, 'Триллер');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (5, 'Документальный');
+MERGE INTO Genre (genre_id, name) KEY(genre_id) VALUES (6, 'Боевик');
 
-INSERT INTO Friendship_status VALUES (1, 'PENDING');
-INSERT INTO Friendship_status VALUES (2, 'CONFIRMED');
+MERGE INTO Friendship_status (friendship_status_id, status) KEY(friendship_status_id) VALUES (1, 'PENDING');
+MERGE INTO Friendship_status (friendship_status_id, status) KEY(friendship_status_id) VALUES (2, 'CONFIRMED');

@@ -14,4 +14,8 @@ public interface UserStorage {
     User getById(Long id);
 
     Map<Long, User> getUsers();
+
+    boolean addFriend(Long userId, Long friendId);
+
+    boolean removeFriend(Long userId, Long friendId);
 }

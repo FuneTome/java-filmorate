@@ -14,19 +14,17 @@ CREATE TABLE IF NOT EXISTS Friendship_status (
 );
 
 CREATE TABLE IF NOT EXISTS Film (
-    film_id INTEGER PRIMARY KEY,
+    film_id INTEGER AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR NOT NULL,
     description VARCHAR NOT NULL,
     release_date DATE NOT NULL,
     duration INTEGER NOT NULL,
-    genre_id INTEGER,
     rating_id INTEGER,
-    FOREIGN KEY (genre_id) REFERENCES Genre(genre_id),
     FOREIGN KEY (rating_id) REFERENCES Rating(rating_id)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS Users (
-    user_id INTEGER PRIMARY KEY,
+    user_id INTEGER AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR NOT NULL,
     login VARCHAR NOT NULL,
     name VARCHAR,
@@ -34,11 +32,24 @@ CREATE TABLE IF NOT EXISTS Users (
 );
 
 CREATE TABLE IF NOT EXISTS Friendship (
-    friendship_id INTEGER PRIMARY KEY,
     user_id INTEGER,
     friend_id INTEGER,
     friendship_status_id INTEGER,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (friend_id) REFERENCES Users(user_id),
     FOREIGN KEY (friendship_status_id) REFERENCES Friendship_status(friendship_status_id)
+);
+
+CREATE TABLE IF NOT EXISTS Film_like (
+    user_id INTEGER,
+    film_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (film_id) REFERENCES Film(film_id)
+);
+
+CREATE TABLE IF NOT EXISTS Film_genre (
+    genre_id INTEGER,
+    film_id INTEGER,
+    FOREIGN KEY (genre_id) REFERENCES Genre(genre_id),
+    FOREIGN KEY (film_id) REFERENCES Film(film_id)
 );

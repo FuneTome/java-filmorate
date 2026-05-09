@@ -23,12 +23,4 @@ public class User {
     private LocalDate birthday;
     private Set<Long> friends = new HashSet<>();
     private Set<Friendship> friendships = new HashSet<>();
-
-    public boolean addFriend(Long id) {
-        return friends.add(id);
-    }
-
-    public boolean removeFriend(Long id) {
-        return friends.remove(id);
-    }
 }

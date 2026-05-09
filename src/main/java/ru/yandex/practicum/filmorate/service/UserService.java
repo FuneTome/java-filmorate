@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
@@ -59,11 +60,10 @@ public class UserService {
         if (!userStorage.findById(friendId)) {
             throw new NotFoundException("Юзер с id = " + friendId + " не найден");
         }
-        if (userStorage.getById(id).addFriend(friendId)) {
-            userStorage.getById(friendId).addFriend(id);
-            return userStorage.getById(id);
+        if (!userStorage.addFriend(id, friendId)) {
+            throw new NotFoundException("Такой человек уже есть в списке друзей");
         }
-        throw new NotFoundException("Такой человек уже есть в списке друзей");
+        return userStorage.getById(id);
     }
 
     public Collection<User> getFriends(Long id) {
@@ -105,8 +105,7 @@ public class UserService {
         if (!userStorage.findById(friendId)) {
             throw new NotFoundException("Юзер с id = " + friendId + " не найден");
         }
-        userStorage.getById(id).removeFriend(friendId);
-        userStorage.getById(friendId).removeFriend(id);
+        userStorage.removeFriend(id, friendId);
     }
 
     private void isValid(User user) {

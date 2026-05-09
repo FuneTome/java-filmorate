@@ -10,12 +10,12 @@ import java.util.Map;
 
 @Slf4j
 @Getter
-@Component
-public class InMemoryUserStorage implements UserStorage {
+//@Component
+public class InMemoryUserStorage /*implements UserStorage*/ {
     private final Map<Long, User> users = new HashMap<>();
     private Long id = 1L;
 
-    @Override
+    //@Override
     public User addUser(User user) {
         user.setId(id);
         users.put(id++, user);
@@ -23,7 +23,7 @@ public class InMemoryUserStorage implements UserStorage {
         return user;
     }
 
-    @Override
+    //@Override
     public User updateUser(User oldUser, User newUser) {
         oldUser.setEmail(newUser.getEmail());
         oldUser.setLogin(newUser.getLogin());
@@ -34,12 +34,12 @@ public class InMemoryUserStorage implements UserStorage {
         return newUser;
     }
 
-    @Override
+    //@Override
     public boolean findById(Long id) {
         return users.containsKey(id);
     }
 
-    @Override
+    //@Override
     public User getById(Long id) {
         return users.get(id);
     }

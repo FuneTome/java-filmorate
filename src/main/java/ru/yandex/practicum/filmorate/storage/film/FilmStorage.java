@@ -14,4 +14,8 @@ public interface FilmStorage {
     Film getById(Long id);
 
     Map<Long, Film> getFilms();
+
+    boolean addLike(Long filmId, Long userId);
+
+    boolean removeLike(Long filmId, Long userId);
 }

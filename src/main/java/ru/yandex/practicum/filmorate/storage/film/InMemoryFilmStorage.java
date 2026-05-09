@@ -11,11 +11,11 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Component
-public class InMemoryFilmStorage implements FilmStorage {
+public class InMemoryFilmStorage /*implements FilmStorage*/ {
     private final Map<Long, Film> films = new HashMap<>();
     private Long id = 1L;
 
-    @Override
+    //@Override
     public Film updateFilm(Film oldFilm, Film newFilm) {
         oldFilm.setName(newFilm.getName());
         oldFilm.setDescription(newFilm.getDescription());
@@ -26,7 +26,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         return oldFilm;
     }
 
-    @Override
+    //@Override
     public Film addFilm(Film film) {
         film.setId(id);
         films.put(id++, film);
@@ -34,12 +34,12 @@ public class InMemoryFilmStorage implements FilmStorage {
         return film;
     }
 
-    @Override
+    //@Override
     public boolean findById(Long id) {
         return films.containsKey(id);
     }
 
-    @Override
+    //@Override
     public Film getById(Long id) {
         return films.get(id);
     }
