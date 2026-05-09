@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class FilmorateApplicationTests {
 
 	@Autowired
@@ -107,17 +109,16 @@ class FilmorateApplicationTests {
 	void updateFilmShouldReplaceAllDataAndGenres() {
 		Film oldFilm = filmStorage.addFilm(makeFilm("Old", 90, 1));
 		oldFilm.setGenres(new HashSet<>(Arrays.asList(1L)));
-		jdbcTemplate.update("INSERT INTO Film_genre (film_id, genre_id) VALUES (?, 1)", oldFilm.getId());
 
 		Film newData = makeFilm("New", 150, 3);
-		newData.setGenres(new HashSet<>(Arrays.asList(6L, 7L)));
+		newData.setGenres(new HashSet<>(Arrays.asList(2L, 3L)));
 
 		Film updated = filmStorage.updateFilm(oldFilm, newData);
 
 		assertThat(updated.getId()).isEqualTo(oldFilm.getId());
 		assertThat(updated.getName()).isEqualTo("New");
 		assertThat(updated.getRating()).isEqualTo(3);
-		assertThat(updated.getGenres()).containsExactlyInAnyOrder(6L, 7L);
+		assertThat(updated.getGenres()).containsExactlyInAnyOrder(2L, 3L);
 	}
 
 	@Test
