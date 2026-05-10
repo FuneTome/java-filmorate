@@ -6,8 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
@@ -56,8 +55,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	void updateUserShouldChangeFields() {
-		User oldUser = userStorage.addUser(makeUser("old@ya.ru", "old", "Old",
-				LocalDate.of(1990, 5, 5)));
+		User oldUser = userStorage.addUser(makeUser("old@ya.ru", "old", "Old", LocalDate.of(1990, 5, 5)));
 		User newData = makeUser("new@ya.ru", "new", "New", LocalDate.of(2000, 1, 1));
 
 		User updated = userStorage.updateUser(oldUser, newData);
@@ -70,14 +68,14 @@ class FilmorateApplicationTests {
 
 	@Test
 	void findUserByIdShouldReturnTrueForExistingUserAndFalseForMissing() {
-		User user = userStorage.addUser(makeUser("1@ya.ru", "1", null, LocalDate.now()));
+		User user = userStorage.addUser(makeUser("1@ya.ru", "1", "name", LocalDate.now()));
 		assertThat(userStorage.findById(user.getId())).isTrue();
 		assertThat(userStorage.findById(999L)).isFalse();
 	}
 
 	@Test
 	void getByIdShouldReturnUserOrThrowException() {
-		User user = userStorage.addUser(makeUser("2@ya.ru", "2", null, LocalDate.now()));
+		User user = userStorage.addUser(makeUser("2@ya.ru", "2", "name", LocalDate.now()));
 		User found = userStorage.getById(user.getId());
 		assertThat(found.getEmail()).isEqualTo("2@ya.ru");
 
@@ -87,8 +85,8 @@ class FilmorateApplicationTests {
 
 	@Test
 	void getUsersShouldReturnAllAddedUsers() {
-		userStorage.addUser(makeUser("a@ya.ru", "a", null, LocalDate.now()));
-		userStorage.addUser(makeUser("b@ya.ru", "b", null, LocalDate.now()));
+		userStorage.addUser(makeUser("a@ya.ru", "a", "A", LocalDate.now()));
+		userStorage.addUser(makeUser("b@ya.ru", "b", "B", LocalDate.now()));
 
 		Map<Long, User> users = userStorage.getUsers();
 		assertThat(users).hasSize(2);
@@ -97,28 +95,28 @@ class FilmorateApplicationTests {
 	@Test
 	void addFilmShouldSaveFilmWithGenres() {
 		Film film = makeFilm("Film", 120, 1);
-		film.setGenres(new HashSet<>(Arrays.asList(1L, 2L)));
+		film.setGenres(new HashSet<>(Arrays.asList(new Genre(1, null)))); // только id, имя не важно
 
 		Film saved = filmStorage.addFilm(film);
 
 		assertThat(saved.getId()).isPositive();
-		assertThat(saved.getGenres()).containsExactlyInAnyOrder(1L, 2L);
+		assertThat(saved.getGenres()).extracting(Genre::getId).containsExactlyInAnyOrder(1);
 	}
 
 	@Test
 	void updateFilmShouldReplaceAllDataAndGenres() {
 		Film oldFilm = filmStorage.addFilm(makeFilm("Old", 90, 1));
-		oldFilm.setGenres(new HashSet<>(Arrays.asList(1L)));
+		oldFilm.getGenres().add(new Genre(1, null));
 
 		Film newData = makeFilm("New", 150, 3);
-		newData.setGenres(new HashSet<>(Arrays.asList(2L, 3L)));
+		newData.setGenres(new HashSet<>(Arrays.asList(new Genre(2, null), new Genre(3, null))));
 
 		Film updated = filmStorage.updateFilm(oldFilm, newData);
 
 		assertThat(updated.getId()).isEqualTo(oldFilm.getId());
 		assertThat(updated.getName()).isEqualTo("New");
-		assertThat(updated.getRating()).isEqualTo(3);
-		assertThat(updated.getGenres()).containsExactlyInAnyOrder(2L, 3L);
+		assertThat(updated.getRating().getId()).isEqualTo(3);
+		assertThat(updated.getGenres()).extracting(Genre::getId).containsExactlyInAnyOrder(2, 3);
 	}
 
 	@Test
@@ -129,18 +127,19 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
-	void getFilmByIdShouldReturnFilmWithGenresAndLikes() {
-		User user = userStorage.addUser(makeUser("fan@ya.ru", "fan", null, LocalDate.now()));
+	void getFilmByIdShouldReturnFilmWithGenres() {
 		Film film = filmStorage.addFilm(makeFilm("Fav", 110, 2));
-		film.setGenres(new HashSet<>(Arrays.asList(4L)));
-		jdbcTemplate.update("INSERT INTO Film_genre (film_id, genre_id) VALUES (?, 4)", film.getId());
-		jdbcTemplate.update("INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)", film.getId(), user.getId());
+		film.getGenres().add(new Genre(4, null));
+		filmStorage.updateFilm(film, film);
+
+		User user = userStorage.addUser(makeUser("fan@ya.ru", "fan", "fan", LocalDate.now()));
+		filmStorage.addLike(film.getId(), user.getId());
 
 		Film found = filmStorage.getById(film.getId());
-
 		assertThat(found.getName()).isEqualTo("Fav");
-		assertThat(found.getGenres()).containsExactlyInAnyOrder(4L);
-		assertThat(found.getLikes()).containsExactlyInAnyOrder(user.getId());
+		assertThat(found.getGenres()).extracting(Genre::getId).containsExactlyInAnyOrder(4);
+		List<Long> likes = jdbcTemplate.queryForList("SELECT user_id FROM film_like WHERE film_id = ?", Long.class, film.getId());
+		assertThat(likes).containsExactlyInAnyOrder(user.getId());
 	}
 
 	@Test
@@ -153,26 +152,30 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
-	void addLikeShouldPersistAndReflectInGetById() {
-		User user = userStorage.addUser(makeUser("like@ya.ru", "liker", null, LocalDate.now()));
+	void addLikeShouldPersistAndReflectInDb() {
+		User user = userStorage.addUser(makeUser("like@ya.ru", "liker", "Liker", LocalDate.now()));
 		Film film = filmStorage.addFilm(makeFilm("Liked", 100, 1));
 
 		boolean added = filmStorage.addLike(film.getId(), user.getId());
 		assertThat(added).isTrue();
 
-		Film found = filmStorage.getById(film.getId());
-		assertThat(found.getLikes()).containsExactlyInAnyOrder(user.getId());
+		Integer count = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM film_like WHERE film_id = ? AND user_id = ?", Integer.class, film.getId(), user.getId());
+		assertThat(count).isEqualTo(1);
 	}
 
 	@Test
 	void removeLikeShouldDeleteFromDb() {
-		User user = userStorage.addUser(makeUser("unlike@ya.ru", "unliker", null, LocalDate.now()));
+		User user = userStorage.addUser(makeUser("unlike@ya.ru", "unliker", "Unlike", LocalDate.now()));
 		Film film = filmStorage.addFilm(makeFilm("Dislike", 100, 1));
 		filmStorage.addLike(film.getId(), user.getId());
 
 		boolean removed = filmStorage.removeLike(film.getId(), user.getId());
 		assertThat(removed).isTrue();
-		assertThat(filmStorage.getById(film.getId()).getLikes()).isEmpty();
+
+		Integer count = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM film_like WHERE film_id = ? AND user_id = ?", Integer.class, film.getId(), user.getId());
+		assertThat(count).isEqualTo(0);
 	}
 
 	@Test
@@ -182,11 +185,13 @@ class FilmorateApplicationTests {
 
 		userStorage.addFriend(user1.getId(), user2.getId());
 
-		User found = userStorage.getById(user1.getId());
-		assertThat(found.getFriends()).containsExactlyInAnyOrder(user2.getId());
+		List<Long> friendsOfUser1 = jdbcTemplate.queryForList(
+				"SELECT friend_id FROM friendship WHERE user_id = ? AND friendship_status_id = 2", Long.class, user1.getId());
+		assertThat(friendsOfUser1).containsExactlyInAnyOrder(user2.getId());
 
-		User found2 = userStorage.getById(user2.getId());
-		assertThat(found2.getFriends()).isEmpty();
+		List<Long> friendsOfUser2 = jdbcTemplate.queryForList(
+				"SELECT friend_id FROM friendship WHERE user_id = ? AND friendship_status_id = 2", Long.class, user2.getId());
+		assertThat(friendsOfUser2).isEmpty();
 	}
 
 	@Test
@@ -198,8 +203,13 @@ class FilmorateApplicationTests {
 		boolean removed = userStorage.removeFriend(user1.getId(), user2.getId());
 		assertThat(removed).isTrue();
 
-		assertThat(userStorage.getById(user1.getId()).getFriends()).isEmpty();
-		assertThat(userStorage.getById(user2.getId()).getFriends()).isEmpty();
+		List<Long> friendsOfUser1 = jdbcTemplate.queryForList(
+				"SELECT friend_id FROM friendship WHERE user_id = ? AND friendship_status_id = 2", Long.class, user1.getId());
+		assertThat(friendsOfUser1).isEmpty();
+
+		List<Long> friendsOfUser2 = jdbcTemplate.queryForList(
+				"SELECT friend_id FROM friendship WHERE user_id = ? AND friendship_status_id = 2", Long.class, user2.getId());
+		assertThat(friendsOfUser2).isEmpty();
 	}
 
 	private User makeUser(String email, String login, String name, LocalDate birthday) {
@@ -217,7 +227,11 @@ class FilmorateApplicationTests {
 		film.setDescription(name + " description");
 		film.setReleaseDate(LocalDate.of(2020, 5, 5));
 		film.setDuration(duration);
-		film.setRating(ratingId);
+
+		Rating rating = new Rating();
+		rating.setId(ratingId);
+		film.setRating(rating);
+
 		film.setGenres(new HashSet<>());
 		return film;
 	}

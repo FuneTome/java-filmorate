@@ -82,9 +82,6 @@ public class UserDbStorage implements UserStorage {
     public User getById(Long id) {
         try {
             User user = jdbcTemplate.queryForObject(FIND_USER_BY_ID, userRowMapper, id);
-            if (user != null) {
-                enrichUserWithFriends(user);
-            }
             return user;
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchElementException("Пользователь с id=" + id + " не найден");
@@ -92,10 +89,24 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    public List<User> getFriends(long userId) {
+        return jdbcTemplate.query(
+                "SELECT u.* FROM users u JOIN friendship f ON u.user_id = f.friend_id WHERE f.user_id = ? AND f.friendship_status_id = 2",
+                userRowMapper, userId);
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId, long otherId) {
+        return jdbcTemplate.query(
+                "SELECT u.* FROM users u " +
+                        "JOIN friendship f1 ON u.user_id = f1.friend_id AND f1.user_id = ? AND f1.friendship_status_id = 2 " +
+                        "JOIN friendship f2 ON u.user_id = f2.friend_id AND f2.user_id = ? AND f2.friendship_status_id = 2",
+                userRowMapper, userId, otherId);
+    }
+
+    @Override
     public Map<Long, User> getUsers() {
         List<User> users = jdbcTemplate.query(FIND_ALL_USERS, userRowMapper);
-        Map<Long, Set<Long>> allFriends = loadAllFriends();
-        users.forEach(u -> u.setFriends(allFriends.getOrDefault(u.getId(), new HashSet<>())));
         return users.stream().collect(Collectors.toMap(User::getId, u -> u));
     }
 
@@ -113,31 +124,5 @@ public class UserDbStorage implements UserStorage {
     public boolean removeFriend(Long userId, Long friendId) {
         int rowsAffected = jdbcTemplate.update(DELETE_FRIEND, userId, friendId);
         return rowsAffected > 0;
-    }
-
-    private void enrichUserWithFriends(User user) {
-        List<Long> friendIds = jdbcTemplate.query(
-                "SELECT friend_id FROM Friendship WHERE user_id = ? AND friendship_status_id = 2",
-                (rs, rowNum) -> rs.getLong("friend_id"),
-                user.getId()
-        );
-        user.setFriends(new HashSet<>(friendIds));
-    }
-
-    private Map<Long, Set<Long>> loadAllFriends() {
-        List<Map<String, Object>> rows = jdbcTemplate.query(
-                "SELECT user_id, friend_id FROM Friendship WHERE friendship_status_id = 2",
-                (rs, rowNum) -> Map.of(
-                        "userId", rs.getLong("user_id"),
-                        "friendId", rs.getLong("friend_id")
-                )
-        );
-        Map<Long, Set<Long>> result = new HashMap<>();
-        for (Map<String, Object> row : rows) {
-            Long userId = (Long) row.get("userId");
-            Long friendId = (Long) row.get("friendId");
-            result.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
-        }
-        return result;
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -67,13 +68,10 @@ public class UserService {
     }
 
     public Collection<User> getFriends(Long id) {
-        if (userStorage.findById(id)) {
-            Set<Long> friendIds = userStorage.getById(id).getFriends();
-            return friendIds.stream()
-                    .map(userStorage.getUsers()::get)
-                    .collect(Collectors.toList());
+        if (!userStorage.findById(id)) {
+            throw new NotFoundException("Юзер с id = " + id + " не найден");
         }
-        throw new NotFoundException("Юзер с id = " + id + " не найден");
+        return userStorage.getFriends(id);
     }
 
     public Collection<User> getCommonFriends(Long id, Long otherId) {
@@ -83,19 +81,7 @@ public class UserService {
         if (!userStorage.findById(otherId)) {
             throw new NotFoundException("Юзер с id = " + otherId + " не найден");
         }
-        Set<Long> friendsOfId = userStorage.getById(id).getFriends();
-        Set<Long> friendsOfOtherId = userStorage.getById(otherId).getFriends();
-
-        if (friendsOfId == null || friendsOfOtherId == null) {
-            return null;
-        }
-        Set<Long> intersection = friendsOfId.stream()
-                .filter(friendsOfOtherId::contains)
-                .collect(Collectors.toSet());
-
-        return intersection.stream()
-                .map(userStorage.getUsers()::get)
-                .collect(Collectors.toList());
+        return userStorage.getCommonFriends(id, otherId);
     }
 
     public void deleteFriend(Long id, Long friendId) {

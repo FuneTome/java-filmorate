@@ -7,6 +7,8 @@ import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -65,58 +67,29 @@ public class FilmService {
     }
 
     public Collection<FilmDto> getListFilm(int count) {
-        List<Film> sortedFilms = filmStorage.getFilms().values().stream()
-                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
-                .limit(count)
-                .collect(Collectors.toList());
-        return sortedFilms.stream()
+        List<Film> popular = filmStorage.getPopularFilms(count);
+        return popular.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     public FilmDto addLike(Long id, Long userId) {
-        if (!filmStorage.findById(id)) {
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-        if (!userStorage.findById(userId)) {
-            throw new NotFoundException("Юзер с id = " + userId + " не найден");
-        }
-        if (!filmStorage.addLike(id, userId)) {
-            throw new NotFoundException("Такой человек уже ставил лайк");
-        }
+        if (!filmStorage.findById(id)) throw new NotFoundException("Фильм с id = " + id + " не найден");
+        if (!userStorage.findById(userId)) throw new NotFoundException("Юзер с id = " + userId + " не найден");
+        if (!filmStorage.addLike(id, userId)) throw new NotFoundException("Такой человек уже ставил лайк");
         Film film = filmStorage.getById(id);
         return toDto(film);
     }
 
     public void deleteLike(Long id, Long userId) {
-        if (!filmStorage.findById(id)) {
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-        if (!userStorage.findById(userId)) {
-            throw new NotFoundException("Юзер с id = " + userId + " не найден");
-        }
-        if (!filmStorage.removeLike(id, userId)) {
-            throw new NotFoundException("Такой человек не ставил лайк");
-        }
+        if (!filmStorage.findById(id)) throw new NotFoundException("Фильм с id = " + id + " не найден");
+        if (!userStorage.findById(userId)) throw new NotFoundException("Юзер с id = " + userId + " не найден");
+        if (!filmStorage.removeLike(id, userId)) throw new NotFoundException("Такой человек не ставил лайк");
     }
 
-    private FilmDto toDto(Film film) {
-        FilmDto dto = new FilmDto();
-        dto.setId(film.getId());
-        dto.setName(film.getName());
-        dto.setDescription(film.getDescription());
-        dto.setReleaseDate(film.getReleaseDate());
-        dto.setDuration(film.getDuration());
-
-        MpaDto mpaDto = mpaService.getRatingById(film.getRating());
-        dto.setMpa(mpaDto);
-
-        List<GenreDto> genreDtos = film.getGenres().stream()
-                .map(id -> genreService.getGenreById(id.intValue()))
-                .collect(Collectors.toList());
-        dto.setGenres(genreDtos);
-
-        return dto;
+    public FilmDto getFilmById(long filmId) {
+        Film film = filmStorage.getById(filmId);
+        return toDto(film);
     }
 
     private Film toFilm(FilmRequest request) {
@@ -128,21 +101,42 @@ public class FilmService {
         film.setDuration(request.getDuration());
 
         if (request.getMpa() != null) {
-            film.setRating(request.getMpa().getId());
+            Rating rating = new Rating();
+            rating.setId(request.getMpa().getId());
+            film.setRating(rating);
         }
         if (request.getGenres() != null) {
-            Set<Long> genreIds = request.getGenres().stream()
-                    .map(GenreRequest::getId)
-                    .map(Long::valueOf)
+            Set<Genre> genres = request.getGenres().stream()
+                    .map(g -> {
+                        Genre genre = new Genre();
+                        genre.setId(g.getId());
+                        return genre;
+                    })
                     .collect(Collectors.toSet());
-            film.setGenres(genreIds);
+            film.setGenres(genres);
         }
         return film;
     }
 
-    public FilmDto getFilmById(long filmId) {
-        Film film = filmStorage.getById(filmId);
-        return toDto(film);
+    private FilmDto toDto(Film film) {
+        FilmDto dto = new FilmDto();
+        dto.setId(film.getId());
+        dto.setName(film.getName());
+        dto.setDescription(film.getDescription());
+        dto.setReleaseDate(film.getReleaseDate());
+        dto.setDuration(film.getDuration());
+
+        if (film.getRating() != null) {
+            MpaDto mpaDto = mpaService.getRatingById(film.getRating().getId());
+            dto.setMpa(mpaDto);
+        }
+
+        List<GenreDto> genreDtos = film.getGenres().stream()
+                .map(genre -> genreService.getGenreById(genre.getId()))
+                .collect(Collectors.toList());
+        dto.setGenres(genreDtos);
+
+        return dto;
     }
 
     public void isValid(Film film) {
@@ -155,10 +149,12 @@ public class FilmService {
     }
 
     private void validateMpaAndGenres(Film film) {
-        mpaService.getRatingById(film.getRating());
+        if (film.getRating() != null) {
+            mpaService.getRatingById(film.getRating().getId());
+        }
         if (film.getGenres() != null) {
-            for (Long genreId : film.getGenres()) {
-                genreService.getGenreById(genreId.intValue());
+            for (Genre g : film.getGenres()) {
+                genreService.getGenreById(g.getId());
             }
         }
     }
