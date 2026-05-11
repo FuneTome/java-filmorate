@@ -1,22 +1,22 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 @Data
-public class Film {
+public class FilmRequest {
     private Long id;
-    @NotBlank
+    @NotNull @NotBlank
     private String name;
-    @NotBlank @Size(min = 1, max = 200)
+    @NotNull @NotBlank @Size(min = 1, max = 200)
     private String description;
     private LocalDate releaseDate;
     private int duration;
-    private Set<Genre> genres = new HashSet<>();
-    private Rating rating;
+    private MpaRequest mpa;
+    private List<GenreRequest> genres;
 }

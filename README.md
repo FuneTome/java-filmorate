@@ -2,11 +2,11 @@
 Template repository for Filmorate project.
 
 ## Схема базы данных
-![Схема БД](database_diagram.svg)
+![Схема БД](diagram.svg)
 
 ### Примеры SQL-запросов для основных операций
 
-#### 1. Получение топ-N популярных фильмов (по количеству лайков)
+#### 1. Получение популярных фильмов (по количеству лайков)
 ```sql
 SELECT f.id, f.name, COUNT(fl.user_id) AS likes_count
 FROM film f
