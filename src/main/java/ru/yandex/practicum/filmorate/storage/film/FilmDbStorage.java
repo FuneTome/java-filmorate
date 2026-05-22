@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 @Repository("filmDbStorage")
 @RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
-
     private final JdbcTemplate jdbcTemplate;
     private final FilmRowMapper filmRowMapper;
 

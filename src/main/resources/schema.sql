@@ -56,3 +56,16 @@ CREATE TABLE IF NOT EXISTS film_genre (
     FOREIGN KEY (genre_id) REFERENCES genre(genre_id),
     FOREIGN KEY (film_id) REFERENCES film(film_id)
 );
+
+CREATE TABLE IF NOT EXISTS director (
+    director_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS director_film (
+    director_id INTEGER,
+    film_id INTEGER,
+    PRIMARY KEY (film_id, director_id),
+    FOREIGN KEY (director_id) REFERENCES director(director_id) ON DELETE CASCADE,
+    FOREIGN KEY (film_id) REFERENCES film(film_id) ON DELETE CASCADE
+);
