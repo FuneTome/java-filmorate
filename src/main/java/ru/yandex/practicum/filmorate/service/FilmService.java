@@ -6,9 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -26,15 +24,17 @@ public class FilmService {
     private final GenreService genreService;
     private final MpaService mpaService;
     private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
+    private final DirectorService directorService;
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
                        GenreService genreService,
-                       MpaService mpaService) {
+                       MpaService mpaService, DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
+        this.directorService = directorService;
     }
 
     public Collection<FilmDto> getFilms() {
@@ -62,7 +62,8 @@ public class FilmService {
         isValid(film);
         validateMpaAndGenres(film);
         Film oldFilm = filmStorage.getById(request.getId());
-        Film updated = filmStorage.updateFilm(oldFilm, film);
+        filmStorage.updateFilm(oldFilm, film);
+        Film updated = filmStorage.getById(request.getId());
         return toDto(updated);
     }
 
@@ -92,6 +93,14 @@ public class FilmService {
         return toDto(film);
     }
 
+    public Collection<FilmDto> getFilmsByDirector(long directorId, String sortBy) {
+        if (!directorService.existsById(directorId)) {
+            throw new NotFoundException("Режиссёр с id = " + directorId + " не найден");
+        }
+        List<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
+        return films.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
     private Film toFilm(FilmRequest request) {
         Film film = new Film();
         film.setId(request.getId());
@@ -115,6 +124,16 @@ public class FilmService {
                     .collect(Collectors.toSet());
             film.setGenres(genres);
         }
+        if (request.getDirectors() != null) {
+            Set<Director> directors = request.getDirectors().stream()
+                    .map(g -> {
+                        Director director = new Director();
+                        director.setId(g.getId());
+                        return director;
+                    })
+                    .collect(Collectors.toSet());
+            film.setDirector(directors);
+        }
         return film;
     }
 
@@ -136,6 +155,10 @@ public class FilmService {
                 .collect(Collectors.toList());
         dto.setGenres(genreDtos);
 
+        List<DirectorDto> directorDtos = film.getDirector().stream()
+                .map(director -> directorService.getDirectorById(director.getId()))
+                .collect(Collectors.toList());
+        dto.setDirectors(directorDtos);
         return dto;
     }
 

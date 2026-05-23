@@ -60,6 +60,10 @@ public class DirectorService {
         directorStorage.deleteDirector(id);
     }
 
+    public boolean existsById(long id) {
+        return directorStorage.existById(id);
+    }
+
     private Director toDirector(DirectorRequest request) {
         Director director = new Director();
         director.setId(request.getId());
