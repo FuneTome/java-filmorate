@@ -93,6 +93,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film updateFilm(Film oldFilm, Film newFilm) {
         Long filmId = oldFilm.getId();
+        newFilm.setId(filmId);
         jdbcTemplate.update(UPDATE_FILM,
                 newFilm.getName(),
                 newFilm.getDescription(),
@@ -106,7 +107,6 @@ public class FilmDbStorage implements FilmStorage {
         jdbcTemplate.update(DELETE_FILM_DIRECTORS, filmId);
         saveDirector(newFilm);
 
-        newFilm.setId(filmId);
         return newFilm;
     }
 
