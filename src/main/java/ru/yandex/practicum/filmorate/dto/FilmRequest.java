@@ -19,4 +19,5 @@ public class FilmRequest {
     private int duration;
     private MpaRequest mpa;
     private List<GenreRequest> genres;
+    private List<DirectorRequest> directors;
 }
