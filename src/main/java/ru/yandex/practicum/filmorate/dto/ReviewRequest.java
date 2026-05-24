@@ -14,8 +14,8 @@ public class ReviewRequest {
     @JsonProperty("isPositive")
     private Boolean isPositive;
     @NotNull
-    private Integer userId;
+    private Long userId;
     @NotNull
-    private Integer filmId;
-    private Integer useful;
+    private Long filmId;
+    private int useful;
 }

@@ -13,12 +13,12 @@ import lombok.Getter;
 public class ReviewUpdateDto {
     @NotNull
     @Positive
-    private long reviewId;
+    private Long reviewId;
     private String content;
     @JsonProperty("isPositive")
     private Boolean isPositive;
     @NotNull
-    private Integer userId;
+    private Long userId;
     @NotNull
-    private Integer filmId;
+    private Long filmId;
 }

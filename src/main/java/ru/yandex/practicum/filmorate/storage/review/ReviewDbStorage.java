@@ -63,9 +63,9 @@ public class ReviewDbStorage implements ReviewStorage {
                     .prepareStatement(INSERT_REVIEW, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, review.getContent());
             ps.setBoolean(2, review.getIsPositive());
-            ps.setInt(3, review.getUserId());
-            ps.setInt(4, review.getFilmId());
-            ps.setInt(5, DEFAULT_USEFUL);
+            ps.setLong(3, review.getUserId());
+            ps.setLong(4, review.getFilmId());
+            ps.setLong(5, DEFAULT_USEFUL);
             return ps;
         }, keyHolder);
 

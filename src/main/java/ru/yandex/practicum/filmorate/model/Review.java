@@ -12,7 +12,7 @@ public class Review {
     private String content;
     @JsonProperty("isPositive")
     private Boolean isPositive;
-    private Integer userId;
-    private Integer filmId;
-    private Integer useful;
+    private Long userId;
+    private Long filmId;
+    private int useful;
 }

@@ -35,8 +35,8 @@ public class ReviewService {
 
     public ReviewDto addReview(ReviewRequest reviewRequest) {
         log.debug("Добавление отзыва {}", reviewRequest);
-        filmExists(reviewRequest.getFilmId().longValue());
-        userExists(reviewRequest.getUserId().longValue());
+        filmExists(reviewRequest.getFilmId());
+        userExists(reviewRequest.getUserId());
 
         Review review = mapper.toReview(reviewRequest);
 
@@ -45,7 +45,7 @@ public class ReviewService {
 
     public ReviewDto updateReview(ReviewUpdateDto reviewUpdateDto) {
         Long reviewId = reviewUpdateDto.getReviewId();
-        Long filmId = reviewUpdateDto.getFilmId().longValue();
+        Long filmId = reviewUpdateDto.getFilmId();
         filmExists(filmId);
 
         log.debug("Обновление отзыва c id {}", reviewId);
@@ -56,10 +56,10 @@ public class ReviewService {
         return mapper.toDto(storage.updateReview(review));
     }
 
-    public ReviewDto getReviewById(long id) {
-        log.debug("Получение отзыва по id {}", id);
+    public ReviewDto getReviewById(long reviewId) {
+        log.debug("Получение отзыва по id {}", reviewId);
 
-        Review review = storage.getReviewById(id)
+        Review review = storage.getReviewById(reviewId)
                 .orElseThrow(() -> new NotFoundException("Отзыв не найден"));
 
         return mapper.toDto(review);

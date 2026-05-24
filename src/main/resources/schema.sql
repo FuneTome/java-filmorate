@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS review_reactions (
     review_id INTEGER,
     user_id INTEGER,
     reaction_type VARCHAR NOT NULL CHECK (reaction_type IN ('LIKE', 'DISLIKE')),
-    CONSTRAINT pk_film_like PRIMARY KEY (review_id, user_id),
+    CONSTRAINT pk_review_reactions PRIMARY KEY (review_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE
 );
