@@ -31,7 +31,7 @@ public class DirectorDbStorage implements DirectorStorage {
             "SELECT director_id, name FROM Director";
     private static final String COUNT_DIRECTOR_BY_ID =
             "SELECT COUNT(*) FROM Director WHERE director_id = ?";
-    private static final String DELETE_DIRECTOR_BY_ID    =
+    private static final String DELETE_DIRECTOR_BY_ID =
             "DELETE FROM Director WHERE director_id = ?";
 
     @Override

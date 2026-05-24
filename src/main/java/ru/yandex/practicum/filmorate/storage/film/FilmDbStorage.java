@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.SortByOption;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -39,7 +40,7 @@ public class FilmDbStorage implements FilmStorage {
     private static final String COUNT_FILM_BY_ID =
             "SELECT COUNT(*) FROM Film WHERE film_id = ?";
     private static final String FIND_GENRES_FOR_FILMS =
-            "SELECT fg.film_id, g.genre_id, g.name FROM Film_genre fg JOIN Genre g ON fg.genre_id = g.genre_id";
+            "SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id";
     private static final String INSERT_LIKE =
             "INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)";
     private static final String DELETE_LIKE =
@@ -151,7 +152,7 @@ public class FilmDbStorage implements FilmStorage {
         return films;
     }
 
-    public List<Film> getFilmsByDirector(long directorId, String sortBy) {
+    public List<Film> getFilmsByDirector(long directorId, SortByOption sortBy) {
         List<Film> films;
         if (sortBy.equals("year")) {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR, filmRowMapper, directorId);
@@ -183,14 +184,14 @@ public class FilmDbStorage implements FilmStorage {
 
     private void enrichFilmWithDetails(Film film) {
         List<Genre> genres = jdbcTemplate.query(
-                "SELECT g.genre_id, g.name FROM Film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ?",
+                "SELECT g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ?",
                 (rs, rowNum) -> new Genre(rs.getInt("genre_id"), rs.getString("name")),
                 film.getId()
         );
         film.setGenres(new HashSet<>(genres));
 
         List<Director> directors = jdbcTemplate.query(
-                "SELECT d.director_id, d.name FROM director_film df JOIN Director d ON df.director_id = d.director_id WHERE df.film_id = ?",
+                "SELECT d.director_id, d.name FROM director_film df JOIN director d ON df.director_id = d.director_id WHERE df.film_id = ?",
                 (rs, rowNum) -> new Director(rs.getLong("director_id"), rs.getString("name")),
                 film.getId()
         );
