@@ -45,6 +45,7 @@ public class ReviewDbStorage implements ReviewStorage {
             "SELECT reaction_type FROM review_reactions WHERE review_id = ? AND user_id = ?";
     private static final String UPDATE_USEFUL = "UPDATE reviews SET useful = useful + ? WHERE review_id = ?";
 
+    @Override
     public List<Review> getReviews(Long filmId, int count) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("film_id", filmId);
@@ -53,6 +54,7 @@ public class ReviewDbStorage implements ReviewStorage {
         return parameterJdbc.query(SELECT_REVIEWS, params, mapper);
     }
 
+    @Override
     public Review addReview(Review review) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -78,6 +80,7 @@ public class ReviewDbStorage implements ReviewStorage {
         }
     }
 
+    @Override
     public Optional<Review> getReviewById(Long id) {
         List<Review> result = jdbc.query(
                 SELECT_REVIEW_BY_ID,
@@ -87,10 +90,12 @@ public class ReviewDbStorage implements ReviewStorage {
         return result.stream().findFirst();
     }
 
+    @Override
     public boolean deleteReviewById(Long id) {
         return jdbc.update(DELETE_REVIEW_BY_ID, id) > 0;
     }
 
+    @Override
     public Review updateReview(Review review) {
         Long id = review.getId();
 
@@ -121,14 +126,17 @@ public class ReviewDbStorage implements ReviewStorage {
         return getReviewById(id).orElseThrow(() -> new RuntimeException("Ошибка обновления отзыва"));
     }
 
+    @Override
     public void addReaction(Long reviewId, Long userId, ReactionType type) {
         jdbc.update(INSERT_REACTION, reviewId, userId, type.toString());
     }
 
+    @Override
     public void deleteReaction(Long reviewId, Long userId) {
         jdbc.update(DELETE_REACTION, reviewId, userId);
     }
 
+    @Override
     public Optional<ReactionType> getReaction(Long reviewId, Long userId) {
         List<ReactionType> result = jdbc.query(
                 SELECT_REACTION_BY_IDS,
@@ -139,6 +147,7 @@ public class ReviewDbStorage implements ReviewStorage {
         return result.stream().findFirst();
     }
 
+    @Override
     public void updateUseful(int delta, Long reviewId) {
         jdbc.update(UPDATE_USEFUL, delta, reviewId);
     }

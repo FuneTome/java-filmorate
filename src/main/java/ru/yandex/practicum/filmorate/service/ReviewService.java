@@ -77,7 +77,7 @@ public class ReviewService {
         reviewExists(reviewId);
 
         ReactionType oldReactionTyp = storage.getReaction(reviewId, userId).orElse(null);
-        int delta = calculateDelta(oldReactionTyp, newReactiontype);
+        int delta = calculateReviewUsefulDelta(oldReactionTyp, newReactiontype);
 
         if (delta != 0) {
             storage.addReaction(reviewId, userId, newReactiontype);
@@ -123,7 +123,7 @@ public class ReviewService {
         }
     }
 
-    private int calculateDelta(ReactionType oldType, ReactionType newType) {
+    private int calculateReviewUsefulDelta(ReactionType oldType, ReactionType newType) {
         if (oldType == null) {
             return newType == ReactionType.LIKE ? 1 : -1;
         }

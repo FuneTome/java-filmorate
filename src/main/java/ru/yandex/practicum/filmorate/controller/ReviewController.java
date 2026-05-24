@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.ReviewDto;
 import ru.yandex.practicum.filmorate.dto.ReviewRequest;
@@ -26,11 +27,13 @@ public class ReviewController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public ReviewDto addReview(@Valid @RequestBody ReviewRequest reviewRequest) {
         return service.addReview(reviewRequest);
     }
 
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteReview(@PathVariable("id") long reviewId) {
         service.deleteReviewById(reviewId);
     }
@@ -56,11 +59,13 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{id}/like/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteLikeOnReview(@PathVariable("id") long reviewId, @PathVariable long userId) {
         service.removeReactionOnReview(reviewId, userId, ReactionType.LIKE);
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDislikeOnReview(@PathVariable("id") long reviewId, @PathVariable long userId) {
         service.removeReactionOnReview(reviewId, userId, ReactionType.DISLIKE);
     }
