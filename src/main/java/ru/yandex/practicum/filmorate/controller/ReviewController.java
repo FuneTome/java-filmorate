@@ -59,13 +59,11 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteLikeOnReview(@PathVariable("id") long reviewId, @PathVariable long userId) {
         service.removeReactionOnReview(reviewId, userId, ReactionType.LIKE);
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDislikeOnReview(@PathVariable("id") long reviewId, @PathVariable long userId) {
         service.removeReactionOnReview(reviewId, userId, ReactionType.DISLIKE);
     }
