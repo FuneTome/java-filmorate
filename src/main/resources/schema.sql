@@ -68,4 +68,22 @@ CREATE TABLE IF NOT EXISTS director_film (
     PRIMARY KEY (film_id, director_id),
     FOREIGN KEY (director_id) REFERENCES director(director_id) ON DELETE CASCADE,
     FOREIGN KEY (film_id) REFERENCES film(film_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS reviews (
+    review_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    content VARCHAR,
+    is_positive BOOLEAN NOT NULL,
+    user_id INTEGER,
+    film_id INTEGER,
+    useful INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (film_id) REFERENCES film(film_id)
+);
+
+CREATE TABLE IF NOT EXISTS review_reactions (
+    review_id INTEGER,
+    user_id INTEGER,
+    reaction_type VARCHAR NOT NULL CHECK (reaction_type IN ('LIKE', 'DISLIKE')),
+    CONSTRAINT pk_review_reactions PRIMARY KEY (review_id, user_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE
 );

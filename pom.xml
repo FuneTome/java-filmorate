@@ -63,33 +63,33 @@
 		</dependency>
 	</dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>3.3.1</version>
-				<configuration>
-					<configLocation>checkstyle.xml</configLocation>
-					<consoleOutput>true</consoleOutput>
-					<failsOnError>true</failsOnError>
-				</configuration>
-				<executions>
-					<execution>
-						<id>validate</id>
-						<phase>validate</phase>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
-
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <version>3.3.1</version>
+            <configuration>
+                <configLocation>checkstyle.xml</configLocation>
+                <failOnViolation>true</failOnViolation>
+                <logViolationsToConsole>true</logViolationsToConsole>
+                <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            </configuration>
+            <executions>
+                <execution>
+                    <id>checkstyle</id>
+                    <goals>
+                        <goal>check</goal>
+                    </goals>
+                    <phase>validate</phase>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
 </project>
