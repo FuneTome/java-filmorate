@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.SortByOption;
 
 import java.util.List;
 import java.util.Map;
@@ -21,4 +22,6 @@ public interface FilmStorage {
     boolean removeLike(Long filmId, Long userId);
 
     List<Film> getPopularFilms(int count);
+
+    List<Film> getFilmsByDirector(long directorId, SortByOption sortBy);
 }
