@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.enums.EventType;
 import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.mappers.FilmMapper;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
@@ -16,7 +17,6 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,38 +27,41 @@ public class FilmService {
     private final GenreService genreService;
     private final MpaService mpaService;
     private final EventStorage eventStorage;
-    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
     private final DirectorService directorService;
+    private final FilmMapper filmMapper;
+    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
                        GenreService genreService,
                        MpaService mpaService,
                        DirectorService directorService,
-                       EventStorage eventStorage) {
+                       EventStorage eventStorage,
+                       FilmMapper filmMapper) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
         this.directorService = directorService;
         this.eventStorage = eventStorage;
+        this.filmMapper = filmMapper;
     }
 
     public Collection<FilmDto> getFilms() {
         log.info("Запрос на получение всех фильмов");
         return filmStorage.getFilms().values().stream()
-                .map(this::toDto)
+                .map(filmMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     public FilmDto addFilm(FilmRequest request) {
         log.info("Запрос на добавление нового фильма: {}", request.getName());
-        Film film = toFilm(request);
+        Film film = filmMapper.toFilm(request);
         isValid(film);
         validateMpaAndGenres(film);
         Film saved = filmStorage.addFilm(film);
         log.info("Фильм успешно добавлен с id: {}", saved.getId());
-        return toDto(saved);
+        return filmMapper.toDto(saved);
     }
 
     public FilmDto updateFilm(FilmRequest request) {
@@ -68,14 +71,15 @@ public class FilmService {
             throw new ValidationException("Id должен быть указан");
         }
         checkFilmExists(request.getId());
-        Film film = toFilm(request);
+
+        Film film = filmMapper.toFilm(request);
         isValid(film);
         validateMpaAndGenres(film);
         Film oldFilm = filmStorage.getById(request.getId());
         filmStorage.updateFilm(oldFilm, film);
         Film updated = filmStorage.getById(request.getId());
         log.info("Фильм с id {} успешно обновлён", updated.getId());
-        return toDto(updated);
+        return filmMapper.toDto(updated);
     }
 
     public Collection<FilmDto> getListFilm(int count) {
@@ -97,7 +101,7 @@ public class FilmService {
         }
         List<Film> popular = filmStorage.getPopularFilms(count, genreId, year);
         return popular.stream()
-                .map(this::toDto)
+                .map(filmMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -119,7 +123,7 @@ public class FilmService {
                 .build();
         eventStorage.createEvent(event);
         log.info("Лайк успешно добавлен");
-        return toDto(film);
+        return filmMapper.toDto(film);
     }
 
     public void deleteLike(Long id, Long userId) {
@@ -144,14 +148,19 @@ public class FilmService {
     public FilmDto getFilmById(long filmId) {
         log.info("Запрос на получение фильма по id: {}", filmId);
         Film film = filmStorage.getById(filmId);
-        return toDto(film);
+        return filmMapper.toDto(film);
     }
 
     public Collection<FilmDto> getFilmsByDirector(long directorId, SortByOption sortBy) {
         log.info("Запрос на получение фильмов режиссёра id: {} с сортировкой: {}", directorId, sortBy);
         checkDirectorExists(directorId);
         List<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
-        return films.stream().map(this::toDto).collect(Collectors.toList());
+        return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
+    }
+
+    public List<FilmDto> searchFilms(FilmSearchRequest searchRequest) {
+        List<Film> films = filmStorage.searchFilms(searchRequest.getQuery(), searchRequest.getBy());
+        return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
     }
 
     private void checkFilmExists(long id) {

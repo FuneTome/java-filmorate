@@ -6,7 +6,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.mappers.UserRowMapper;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -38,6 +40,25 @@ public class UserDbStorage implements UserStorage {
             "DELETE FROM Friendship WHERE user_id = ? AND friend_id = ?";
     private static final String CHECK_FRIEND_EXISTS =
             "SELECT COUNT(*) FROM Friendship WHERE user_id = ? AND friend_id = ?";
+    private static final String GET_RECOMMENDATION = """
+            SELECT f.* FROM film f
+            JOIN film_like fl ON f.film_id = fl.film_id
+            WHERE fl.user_id = (
+                    SELECT user_id FROM film_like
+                    WHERE film_id IN (
+                        SELECT film_id FROM film_like
+                        WHERE user_id = ?
+                        )
+                    AND user_id != ?
+                    GROUP BY user_id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 1
+                    )
+            AND f.film_id NOT IN (
+                SELECT film_id FROM film_like
+                WHERE user_id = ?
+            ); """;
+    private final FilmRowMapper filmRowMapper;
 
     @Override
     public User addUser(User user) {
@@ -124,5 +145,10 @@ public class UserDbStorage implements UserStorage {
     public boolean removeFriend(Long userId, Long friendId) {
         int rowsAffected = jdbcTemplate.update(DELETE_FRIEND, userId, friendId);
         return rowsAffected > 0;
+    }
+
+    @Override
+    public List<Film> getRecommendations(Long id) {
+        return jdbcTemplate.query(GET_RECOMMENDATION, filmRowMapper, id, id, id);
     }
 }

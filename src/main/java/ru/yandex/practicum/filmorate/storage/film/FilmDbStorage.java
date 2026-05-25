@@ -2,14 +2,13 @@ package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.mappers.FilmRowMapper;
-import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.SortByOption;
+import ru.yandex.practicum.filmorate.model.*;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -23,6 +22,7 @@ import java.util.stream.Collectors;
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
     private final FilmRowMapper filmRowMapper;
+    private final NamedParameterJdbcTemplate namedJdbc;
 
     private static final String INSERT_FILM =
             "INSERT INTO Film (name, description, release_date, duration, rating_id) VALUES (?, ?, ?, ?, ?)";
@@ -54,6 +54,13 @@ public class FilmDbStorage implements FilmStorage {
                     "WHERE df.director_id = ? " +
                     "GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
                     "ORDER BY COUNT(fl.user_id) DESC";
+    private static final String FIND_FILM_BY_PARAMS_BASE = """
+            SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
+            FROM film f
+            LEFT JOIN film_like fl ON f.film_id = fl.film_id
+            LEFT JOIN director_film df ON f.film_id = df.film_id
+            LEFT JOIN director d ON d.director_id = df.director_id
+            """;
 
     @Override
     public Film addFilm(Film film) {
@@ -85,6 +92,7 @@ public class FilmDbStorage implements FilmStorage {
                 newFilm.getName(), newFilm.getDescription(), Date.valueOf(newFilm.getReleaseDate()),
                 newFilm.getDuration(), newFilm.getRating().getId(), filmId);
         jdbcTemplate.update(DELETE_FILM_GENRES, filmId);
+        newFilm.setId(filmId);
         saveGenres(newFilm);
         jdbcTemplate.update(DELETE_FILM_DIRECTORS, filmId);
         saveDirector(newFilm);
@@ -171,6 +179,46 @@ public class FilmDbStorage implements FilmStorage {
             film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
             film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
         });
+        return films;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, Set<SearchBy> by) {
+        StringBuilder sql = new StringBuilder(FIND_FILM_BY_PARAMS_BASE);
+        List<String> conditions = new ArrayList<>();
+
+        if (by.contains(SearchBy.TITLE)) {
+            conditions.add("LOWER(f.name) LIKE LOWER(CONCAT('%', :query, '%'))");
+        }
+
+        if (by.contains(SearchBy.DIRECTOR)) {
+            conditions.add("LOWER(d.name) LIKE LOWER(CONCAT('%', :query, '%'))");
+        }
+
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ");
+            sql.append(String.join(" OR ", conditions));
+        }
+
+        sql.append("""
+                 GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
+                 ORDER BY COUNT(DISTINCT fl.user_id) DESC
+                """);
+
+        MapSqlParameterSource params =
+                new MapSqlParameterSource();
+
+        params.addValue("query", query);
+
+        List<Film> films = namedJdbc.query(sql.toString(), params, filmRowMapper);
+
+        Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
+        Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
+        films.forEach(film -> {
+            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
+        });
+
         return films;
     }
 

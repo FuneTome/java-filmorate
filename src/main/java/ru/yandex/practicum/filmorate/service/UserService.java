@@ -3,10 +3,13 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.enums.EventType;
 import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.mappers.FilmMapper;
+import ru.yandex.practicum.filmorate.mappers.UserMapper;
 import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.event.EventStorage;
@@ -14,70 +17,78 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class UserService {
     private final UserStorage userStorage;
     private final EventStorage eventStorage;
+    private final FilmMapper filmMapper;
+    private final UserMapper userMapper;
 
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, EventStorage eventStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
+                       EventStorage eventStorage,
+                       FilmMapper filmMapper,
+                       UserMapper userMapper) {
         this.userStorage = userStorage;
         this.eventStorage = eventStorage;
+        this.filmMapper = filmMapper;
+        this.userMapper = userMapper;
     }
 
-    public Collection<User> getUsers() {
+    public Collection<UserDto> getUsers() {
         log.info("Запрос на получение всех пользователей");
-        return userStorage.getUsers().values();
+        return userStorage.getUsers().values().stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    public User getUser(Long id) {
+    public UserDto getUser(Long id) {
         log.info("Запрос на получение пользователя по id: {}", id);
-        if (userStorage.findById(id)) {
-            return userStorage.getById(id);
+        if (!userStorage.findById(id)) {
+            log.warn("Пользователь с id {} не найден", id);
+            throw new NotFoundException("Юзер с id = " + id + " не найден");
         }
-        log.warn("Пользователь с id {} не найден", id);
-        throw new NotFoundException("Юзер с id = " + id + " не найден");
+        User user = userStorage.getById(id);
+        return userMapper.toDto(user);
     }
 
-    public User addUser(User user) {
-        log.info("Запрос на добавление нового пользователя: {}", user.getLogin());
+    public UserDto addUser(UserRequest request) {
+        log.info("Запрос на добавление нового пользователя: {}", request.getLogin());
+        User user = userMapper.toUser(request);
         isValid(user);
         if (user.getName() == null) {
             user.setName(user.getLogin());
         }
         User saved = userStorage.addUser(user);
         log.info("Пользователь успешно добавлен с id: {}", saved.getId());
-        return saved;
+        return userMapper.toDto(saved);
     }
 
-    public User updateUser(User newUser) {
-        log.info("Запрос на обновление пользователя с id: {}", newUser.getId());
-        if (newUser.getId() == null) {
+    public UserDto updateUser(UserRequest request) {
+        log.info("Запрос на обновление пользователя с id: {}", request.getId());
+        if (request.getId() == null) {
             log.warn("Попытка обновления пользователя без указания id");
             throw new ValidationException("Id должен быть указан");
         }
-        if (!userStorage.findById(newUser.getId())) {
-            log.warn("Пользователь с id {} не найден для обновления", newUser.getId());
-            throw new NotFoundException("Юзер с id = " + newUser.getId() + " не найден");
+        if (!userStorage.findById(request.getId())) {
+            log.warn("Пользователь с id {} не найден для обновления", request.getId());
+            throw new NotFoundException("Юзер с id = " + request.getId() + " не найден");
         }
-        isValid(newUser);
-        User oldUser = userStorage.getById(newUser.getId());
-        User updated = userStorage.updateUser(oldUser, newUser);
+        User user = userMapper.toUser(request);
+        user.setId(request.getId());
+        isValid(user);
+        User oldUser = userStorage.getById(request.getId());
+        User updated = userStorage.updateUser(oldUser, user);
         log.info("Пользователь с id {} успешно обновлён", updated.getId());
-        return updated;
+        return userMapper.toDto(updated);
     }
 
-    public User addFriend(Long id, Long friendId) {
+    public UserDto addFriend(Long id, Long friendId) {
         log.info("Запрос на добавление друга id: {} пользователю id: {}", friendId, id);
-        if (!userStorage.findById(id)) {
-            log.warn("Пользователь id: {} не найден", id);
-            throw new NotFoundException("Юзер с id = " + id + " не найден");
-        }
-        if (!userStorage.findById(friendId)) {
-            log.warn("Друг id: {} не найден", friendId);
-            throw new NotFoundException("Юзер с id = " + friendId + " не найден");
-        }
+        checkUserExists(id);
+        checkUserExists(friendId);
         if (!userStorage.addFriend(id, friendId)) {
             log.warn("Пользователь id: {} уже в друзьях у id: {}", friendId, id);
             throw new NotFoundException("Такой человек уже есть в списке друзей");
@@ -92,41 +103,31 @@ public class UserService {
 
         eventStorage.createEvent(event);
         log.info("Друг успешно добавлен");
-        return userStorage.getById(id);
+        User user = userStorage.getById(id);
+        return userMapper.toDto(user);
     }
 
-    public Collection<User> getFriends(Long id) {
+    public Collection<UserDto> getFriends(Long id) {
         log.info("Запрос на получение друзей пользователя id: {}", id);
-        if (!userStorage.findById(id)) {
-            log.warn("Пользователь id: {} не найден", id);
-            throw new NotFoundException("Юзер с id = " + id + " не найден");
-        }
-        return userStorage.getFriends(id);
+        checkUserExists(id);
+        return userStorage.getFriends(id).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    public Collection<User> getCommonFriends(Long id, Long otherId) {
+    public Collection<UserDto> getCommonFriends(Long id, Long otherId) {
         log.info("Запрос на получение общих друзей пользователей id: {} и id: {}", id, otherId);
-        if (!userStorage.findById(id)) {
-            log.warn("Пользователь id: {} не найден", id);
-            throw new NotFoundException("Юзер с id = " + id + " не найден");
-        }
-        if (!userStorage.findById(otherId)) {
-            log.warn("Пользователь id: {} не найден", otherId);
-            throw new NotFoundException("Юзер с id = " + otherId + " не найден");
-        }
-        return userStorage.getCommonFriends(id, otherId);
+        checkUserExists(id);
+        checkUserExists(otherId);
+        return userStorage.getCommonFriends(id, otherId).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     public void deleteFriend(Long id, Long friendId) {
         log.info("Запрос на удаление друга id: {} у пользователя id: {}", friendId, id);
-        if (!userStorage.findById(id)) {
-            log.warn("Пользователь id: {} не найден", id);
-            throw new NotFoundException("Юзер с id = " + id + " не найден");
-        }
-        if (!userStorage.findById(friendId)) {
-            log.warn("Друг id: {} не найден", friendId);
-            throw new NotFoundException("Юзер с id = " + friendId + " не найден");
-        }
+        checkUserExists(id);
+        checkUserExists(friendId);
         userStorage.removeFriend(id, friendId);
 
         Event event = Event.builder()
@@ -148,8 +149,23 @@ public class UserService {
         return eventStorage.getUserFeed(id);
     }
 
+    public Collection<FilmDto> getRecommendations(Long id) {
+        log.info("Запрос на получение рекоммендации для пользователя с id: {}", id);
+        checkUserExists(id);
+        return userStorage.getRecommendations(id).stream()
+                .map(filmMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    private void checkUserExists(long userId) {
+        if (!userStorage.findById(userId)) {
+            log.warn("Пользователь с id {} не найден", userId);
+            throw new NotFoundException("Юзер с id = " + userId + " не найден");
+        }
+    }
+
     private void isValid(User user) {
-        if (user.getBirthday().isAfter(LocalDate.now()) || user.getBirthday() == null) {
+        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
             log.warn("Некорректная дата рождения: {}", user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
