@@ -6,10 +6,14 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDto;
 import ru.yandex.practicum.filmorate.dto.ReviewRequest;
 import ru.yandex.practicum.filmorate.dto.ReviewUpdateDto;
+import ru.yandex.practicum.filmorate.enums.EventType;
+import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mappers.ReviewMapper;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.ReactionType;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -26,6 +30,7 @@ public class ReviewService {
     private final ReviewMapper mapper;
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
+    private final EventStorage eventStorage;
 
     public List<ReviewDto> getReviews(Long filmId, int count) throws NotFoundException {
         filmExists(filmId);
@@ -40,7 +45,19 @@ public class ReviewService {
 
         Review review = mapper.toReview(reviewRequest);
 
-        return mapper.toDto(storage.addReview(review));
+        ReviewDto returnedReview = mapper.toDto(storage.addReview(review));
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(review.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.ADD)
+                .entityId(review.getId())
+                .build();
+
+        eventStorage.createEvent(event);
+
+        return returnedReview;
     }
 
     public ReviewDto updateReview(ReviewUpdateDto reviewUpdateDto) {
@@ -53,7 +70,19 @@ public class ReviewService {
         reviewExists(reviewId);
 
         Review review = mapper.toReview(reviewUpdateDto);
-        return mapper.toDto(storage.updateReview(review));
+        ReviewDto returnedReview = mapper.toDto(storage.updateReview(review));
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(review.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.UPDATE)
+                .entityId(review.getId())
+                .build();
+
+        eventStorage.createEvent(event);
+
+        return returnedReview;
     }
 
     public ReviewDto getReviewById(long reviewId) {
@@ -67,7 +96,18 @@ public class ReviewService {
 
     public void deleteReviewById(Long reviewId) {
         reviewExists(reviewId);
+        ReviewDto review = getReviewById(reviewId);
         storage.deleteReviewById(reviewId);
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(review.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.UPDATE)
+                .entityId(review.getReviewId())
+                .build();
+
+        eventStorage.createEvent(event);
     }
 
     public void addReactionOnReview(Long reviewId, Long userId, ReactionType newReactiontype) {
