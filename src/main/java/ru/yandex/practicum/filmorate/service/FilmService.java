@@ -4,11 +4,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.enums.EventType;
+import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -25,16 +29,19 @@ public class FilmService {
     private final UserStorage userStorage;
     private final GenreService genreService;
     private final MpaService mpaService;
+    private final EventStorage eventStorage;
     private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
                        GenreService genreService,
-                       MpaService mpaService) {
+                       MpaService mpaService,
+                       EventStorage eventStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
+        this.eventStorage = eventStorage;
     }
 
     public Collection<FilmDto> getFilms() {
@@ -78,6 +85,15 @@ public class FilmService {
         if (!userStorage.findById(userId)) throw new NotFoundException("Юзер с id = " + userId + " не найден");
         if (!filmStorage.addLike(id, userId)) throw new NotFoundException("Такой человек уже ставил лайк");
         Film film = filmStorage.getById(id);
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.ADD)
+                .entityId(id)
+                .build();
+
+        eventStorage.createEvent(event);
         return toDto(film);
     }
 
@@ -85,6 +101,15 @@ public class FilmService {
         if (!filmStorage.findById(id)) throw new NotFoundException("Фильм с id = " + id + " не найден");
         if (!userStorage.findById(userId)) throw new NotFoundException("Юзер с id = " + userId + " не найден");
         if (!filmStorage.removeLike(id, userId)) throw new NotFoundException("Такой человек не ставил лайк");
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.REMOVE)
+                .entityId(id)
+                .build();
+
+        eventStorage.createEvent(event);
     }
 
     public FilmDto getFilmById(long filmId) {

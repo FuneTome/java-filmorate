@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -54,5 +55,10 @@ public class UserController {
     @PutMapping
     public User updateUser(@Valid @RequestBody User newUser) {
         return userService.updateUser(newUser);
+    }
+
+    @GetMapping("/{id}/feed")
+    public Collection<Event> getUserFeed(@PathVariable Long id) {
+        return userService.getUserFeed(id);
     }
 }

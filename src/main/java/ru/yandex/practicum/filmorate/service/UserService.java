@@ -3,9 +3,13 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.enums.EventType;
+import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -15,9 +19,11 @@ import java.util.Collection;
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final EventStorage eventStorage;
 
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, EventStorage eventStorage) {
         this.userStorage = userStorage;
+        this.eventStorage = eventStorage;
     }
 
     public Collection<User> getUsers() {
@@ -61,6 +67,15 @@ public class UserService {
         if (!userStorage.addFriend(id, friendId)) {
             throw new NotFoundException("Такой человек уже есть в списке друзей");
         }
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(id)
+                .eventType(EventType.FRIEND)
+                .operation(Operation.ADD)
+                .entityId(friendId)
+                .build();
+
+        eventStorage.createEvent(event);
         return userStorage.getById(id);
     }
 
@@ -89,6 +104,23 @@ public class UserService {
             throw new NotFoundException("Юзер с id = " + friendId + " не найден");
         }
         userStorage.removeFriend(id, friendId);
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(id)
+                .eventType(EventType.FRIEND)
+                .operation(Operation.REMOVE)
+                .entityId(friendId)
+                .build();
+
+        eventStorage.createEvent(event);
+    }
+
+    public Collection<Event> getUserFeed(Long id) {
+        if (!userStorage.findById(id)) {
+            throw new NotFoundException("Юзер с id = " + id + " не найден");
+        }
+        return eventStorage.getUserFeed(id);
     }
 
     private void isValid(User user) {

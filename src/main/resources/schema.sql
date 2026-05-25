@@ -56,3 +56,13 @@ CREATE TABLE IF NOT EXISTS film_genre (
     FOREIGN KEY (genre_id) REFERENCES genre(genre_id),
     FOREIGN KEY (film_id) REFERENCES film(film_id)
 );
+
+CREATE TABLE IF NOT EXISTS events (
+    event_timestamp BIGINT NOT NULL,
+    user_id INTEGER NOT NULL,
+    event_type VARCHAR NOT NULL CHECK (event_type IN ('LIKE', 'REVIEW', 'FRIEND')),
+    operation VARCHAR NOT NULL CHECK (operation IN ('REMOVE', 'ADD', 'UPDATE')),
+    event_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    entity_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
