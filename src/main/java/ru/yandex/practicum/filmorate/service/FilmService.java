@@ -27,9 +27,9 @@ public class FilmService {
     private final GenreService genreService;
     private final MpaService mpaService;
     private final EventStorage eventStorage;
-    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
     private final DirectorService directorService;
     private final FilmMapper filmMapper;
+    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
