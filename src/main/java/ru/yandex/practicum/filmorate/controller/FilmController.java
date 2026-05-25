@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.FilmRequest;
+import ru.yandex.practicum.filmorate.dto.FilmSearchRequest;
 import ru.yandex.practicum.filmorate.model.SortByOption;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -56,5 +57,10 @@ public class FilmController {
     @GetMapping("/director/{directorId}")
     public Collection<FilmDto> getFilmsByDirector(@PathVariable long directorId, @RequestParam SortByOption sortBy) {
         return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @GetMapping("/search")
+    public Collection<FilmDto> searchFilms(@Valid @ModelAttribute FilmSearchRequest searchRequest) {
+        return filmService.searchFilms(searchRequest);
     }
 }
