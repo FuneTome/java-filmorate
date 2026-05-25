@@ -103,7 +103,7 @@ public class ReviewService {
                 .timestamp(System.currentTimeMillis())
                 .userId(review.getUserId())
                 .eventType(EventType.REVIEW)
-                .operation(Operation.UPDATE)
+                .operation(Operation.REMOVE)
                 .entityId(review.getReviewId())
                 .build();
 
