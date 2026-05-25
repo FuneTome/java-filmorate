@@ -4,10 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.enums.EventType;
+import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -22,8 +26,10 @@ public class UserService {
     private final GenreService genreService;
     private final MpaService mpaService;
     private final DirectorService directorService;
+    private final EventStorage eventStorage;
 
     public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
+                       EventStorage eventStorage,
                        GenreService genreService,
                        MpaService mpaService,
                        DirectorService directorService) {
@@ -31,6 +37,7 @@ public class UserService {
         this.genreService = genreService;
         this.mpaService = mpaService;
         this.directorService = directorService;
+        this.eventStorage = eventStorage;
     }
 
     public Collection<UserDto> getUsers() {
@@ -89,6 +96,15 @@ public class UserService {
             log.warn("Пользователь id: {} уже в друзьях у id: {}", friendId, id);
             throw new NotFoundException("Такой человек уже есть в списке друзей");
         }
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(id)
+                .eventType(EventType.FRIEND)
+                .operation(Operation.ADD)
+                .entityId(friendId)
+                .build();
+
+        eventStorage.createEvent(event);
         log.info("Друг успешно добавлен");
         User user = userStorage.getById(id);
         return toDto(user);
@@ -116,7 +132,24 @@ public class UserService {
         checkUserExists(id);
         checkUserExists(friendId);
         userStorage.removeFriend(id, friendId);
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(id)
+                .eventType(EventType.FRIEND)
+                .operation(Operation.REMOVE)
+                .entityId(friendId)
+                .build();
+
+        eventStorage.createEvent(event);
         log.info("Друг успешно удалён");
+    }
+
+    public Collection<Event> getUserFeed(Long id) {
+        if (!userStorage.findById(id)) {
+            throw new NotFoundException("Юзер с id = " + id + " не найден");
+        }
+        return eventStorage.getUserFeed(id);
     }
 
     public Collection<FilmDto> getRecommendations(Long id) {
