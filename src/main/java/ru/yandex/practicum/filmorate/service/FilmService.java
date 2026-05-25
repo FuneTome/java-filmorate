@@ -150,6 +150,11 @@ public class FilmService {
         return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
     }
 
+    public List<FilmDto> searchFilms(FilmSearchRequest searchRequest) {
+        List<Film> films = filmStorage.searchFilms(searchRequest.getQuery(), searchRequest.getBy());
+        return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
+    }
+
     private void checkFilmExists(long id) {
         if (!filmStorage.findById(id)) {
             log.warn("Фильм с id {} не найден", id);
