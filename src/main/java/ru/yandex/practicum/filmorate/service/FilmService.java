@@ -84,7 +84,6 @@ public class FilmService {
 
     public Collection<FilmDto> getListFilm(int count, Integer genreId, Integer year) {
         log.info("Запрос на получение {} популярных фильмов (жанр: {}, год: {})", count, genreId, year);
-
         if (genreId != null) {
             genreService.getGenreById(genreId);
         }
@@ -96,7 +95,6 @@ public class FilmService {
                 throw new ValidationException("Год не может быть в будущем");
             }
         }
-
         List<Film> popular = filmStorage.getPopularFilms(count, genreId, year);
         return popular.stream()
                 .map(this::toDto)
@@ -184,13 +182,11 @@ public class FilmService {
         film.setDescription(request.getDescription());
         film.setReleaseDate(request.getReleaseDate());
         film.setDuration(request.getDuration());
-
         if (request.getMpa() != null) {
             Rating rating = new Rating();
             rating.setId(request.getMpa().getId());
             film.setRating(rating);
         }
-
         if (request.getGenres() != null) {
             Set<Genre> genres = request.getGenres().stream()
                     .map(g -> {
@@ -201,7 +197,6 @@ public class FilmService {
                     .collect(Collectors.toSet());
             film.setGenres(genres);
         }
-
         if (request.getDirectors() != null) {
             Set<Director> directors = request.getDirectors().stream()
                     .map(g -> {
@@ -212,7 +207,6 @@ public class FilmService {
                     .collect(Collectors.toSet());
             film.setDirector(directors);
         }
-
         return film;
     }
 

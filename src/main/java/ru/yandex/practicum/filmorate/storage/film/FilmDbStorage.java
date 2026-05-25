@@ -68,7 +68,9 @@ public class FilmDbStorage implements FilmStorage {
             return ps;
         }, keyHolder);
         Number generatedId = keyHolder.getKey();
-        if (generatedId == null) throw new RuntimeException("Не удалось сохранить фильм: не получен id");
+        if (generatedId == null) {
+            throw new RuntimeException("Не удалось сохранить фильм: не получен id");
+        }
         film.setId(generatedId.longValue());
         saveGenres(film);
         saveDirector(film);
@@ -98,14 +100,18 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film getById(Long id) {
         Film film = jdbcTemplate.queryForObject(FIND_FILM_BY_ID, filmRowMapper, id);
-        if (film != null) enrichFilmWithDetails(film);
+        if (film != null) {
+            enrichFilmWithDetails(film);
+        }
         return film;
     }
 
     @Override
     public Map<Long, Film> getFilms() {
         List<Film> films = jdbcTemplate.query(FIND_ALL_FILMS, filmRowMapper);
-        if (films.isEmpty()) return Collections.emptyMap();
+        if (films.isEmpty()) {
+            return Collections.emptyMap();
+        }
         Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
         Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
         films.forEach(film -> {
@@ -127,7 +133,6 @@ public class FilmDbStorage implements FilmStorage {
                         "COUNT(fl.user_id) AS like_count FROM film f LEFT JOIN film_like fl ON f.film_id = fl.film_id ");
         List<Object> params = new ArrayList<>();
         List<String> conditions = new ArrayList<>();
-
         if (year != null) {
             conditions.add("f.release_date >= ? AND f.release_date < ?");
             params.add(LocalDate.of(year, 1, 1));
@@ -142,10 +147,7 @@ public class FilmDbStorage implements FilmStorage {
         }
         sql.append("GROUP BY f.film_id ORDER BY like_count DESC, f.film_id ASC LIMIT ?");
         params.add(count);
-
         List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
-
-        // 🔹 Обогащаем и жанрами, и режиссёрами (как в develop)
         Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
         Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
         films.forEach(film -> {
@@ -173,14 +175,18 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void saveGenres(Film film) {
-        if (film.getGenres() == null || film.getGenres().isEmpty()) return;
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
+            return;
+        }
         for (Genre genre : film.getGenres()) {
             jdbcTemplate.update(INSERT_FILM_GENRE, film.getId(), genre.getId());
         }
     }
 
     private void saveDirector(Film film) {
-        if (film.getDirector() == null || film.getDirector().isEmpty()) return;
+        if (film.getDirector() == null || film.getDirector().isEmpty()) {
+            return;
+        }
         for (Director director : film.getDirector()) {
             jdbcTemplate.update(INSERT_FILM_DIRECTOR, film.getId(), director.getId());
         }
@@ -225,7 +231,9 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean addLike(Long filmId, Long userId) {
         Integer count = jdbcTemplate.queryForObject(CHECK_LIKE_EXISTS, Integer.class, filmId, userId);
-        if (count != null && count > 0) return false;
+        if (count != null && count > 0) {
+            return false;
+        }
         jdbcTemplate.update(INSERT_LIKE, filmId, userId);
         return true;
     }
