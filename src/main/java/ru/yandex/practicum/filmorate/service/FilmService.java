@@ -66,8 +66,21 @@ public class FilmService {
         return toDto(updated);
     }
 
-    public Collection<FilmDto> getListFilm(int count) {
-        List<Film> popular = filmStorage.getPopularFilms(count);
+    public Collection<FilmDto> getListFilm(int count, Integer genreId, Integer year) {
+        if (genreId != null) {
+            genreService.getGenreById(genreId);
+        }
+
+        if (year != null) {
+            if (year < FIRST_FILM_DATE.getYear()) {
+                throw new ValidationException("Год не может быть раньше " + FIRST_FILM_DATE.getYear());
+            }
+            if (year > LocalDate.now().getYear()) {
+                throw new ValidationException("Год не может быть в будущем");
+            }
+        }
+
+        List<Film> popular = filmStorage.getPopularFilms(count, genreId, year);
         return popular.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

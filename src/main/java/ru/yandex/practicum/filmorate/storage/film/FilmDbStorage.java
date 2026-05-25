@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,10 +45,6 @@ public class FilmDbStorage implements FilmStorage {
             "DELETE FROM Film_like WHERE film_id = ? AND user_id = ?";
     private static final String CHECK_LIKE_EXISTS =
             "SELECT COUNT(*) FROM Film_like WHERE film_id = ? AND user_id = ?";
-    private static final String FIND_POPULAR_FILMS =
-            "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, COUNT(fl.user_id) AS like_count " +
-                    "FROM film f LEFT JOIN film_like fl ON f.film_id = fl.film_id " +
-                    "GROUP BY f.film_id ORDER BY like_count DESC LIMIT ?";
 
     @Override
     public Film addFilm(Film film) {
@@ -114,12 +111,48 @@ public class FilmDbStorage implements FilmStorage {
         return films.stream().collect(Collectors.toMap(Film::getId, f -> f));
     }
 
+    @Override
     public List<Film> getPopularFilms(int count) {
-        List<Film> films = jdbcTemplate.query(FIND_POPULAR_FILMS, filmRowMapper, count);
+        return getPopularFilms(count, null, null);
+    }
+
+    @Override
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, " +
+                        "COUNT(fl.user_id) AS like_count " +
+                        "FROM film f " +
+                        "LEFT JOIN film_like fl ON f.film_id = fl.film_id "
+        );
+
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+
+        if (year != null) {
+            conditions.add("f.release_date >= ? AND f.release_date < ?");
+            params.add(LocalDate.of(year, 1, 1));
+            params.add(LocalDate.of(year + 1, 1, 1));
+        }
+
+        if (genreId != null) {
+            conditions.add("f.film_id IN (SELECT film_id FROM film_genre WHERE genre_id = ?)");
+            params.add(genreId);
+        }
+
+        if (!conditions.isEmpty()) {
+            sql.append("WHERE ").append(String.join(" AND ", conditions)).append(" ");
+        }
+
+        sql.append("GROUP BY f.film_id ORDER BY like_count DESC, f.film_id ASC LIMIT ?");
+        params.add(count);
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
+
         Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
-        films.forEach(film -> {
-            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
-        });
+        films.forEach(film ->
+                film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()))
+        );
+
         return films;
     }
 
