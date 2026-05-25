@@ -184,23 +184,35 @@ public class FilmService {
         film.setDescription(request.getDescription());
         film.setReleaseDate(request.getReleaseDate());
         film.setDuration(request.getDuration());
+
         if (request.getMpa() != null) {
             Rating rating = new Rating();
             rating.setId(request.getMpa().getId());
             film.setRating(rating);
         }
+
         if (request.getGenres() != null) {
             Set<Genre> genres = request.getGenres().stream()
-                    .map(g -> { Genre genre = new Genre(); genre.setId(g.getId()); return genre; })
+                    .map(g -> {
+                        Genre genre = new Genre();
+                        genre.setId(g.getId());
+                        return genre;
+                    })
                     .collect(Collectors.toSet());
             film.setGenres(genres);
         }
+
         if (request.getDirectors() != null) {
             Set<Director> directors = request.getDirectors().stream()
-                    .map(g -> { Director director = new Director(); director.setId(g.getId()); return director; })
+                    .map(g -> {
+                        Director director = new Director();
+                        director.setId(g.getId());
+                        return director;
+                    })
                     .collect(Collectors.toSet());
             film.setDirector(directors);
         }
+
         return film;
     }
 
