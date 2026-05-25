@@ -4,9 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.enums.EventType;
+import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -23,6 +26,7 @@ public class FilmService {
     private final UserStorage userStorage;
     private final GenreService genreService;
     private final MpaService mpaService;
+    private final EventStorage eventStorage;
     private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
     private final DirectorService directorService;
 
@@ -30,12 +34,14 @@ public class FilmService {
                        @Qualifier("userDbStorage") UserStorage userStorage,
                        GenreService genreService,
                        MpaService mpaService,
-                       DirectorService directorService) {
+                       DirectorService directorService,
+                       EventStorage eventStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
         this.directorService = directorService;
+        this.eventStorage = eventStorage;
     }
 
     public Collection<FilmDto> getFilms() {
@@ -93,6 +99,15 @@ public class FilmService {
             throw new NotFoundException("Такой человек уже ставил лайк");
         }
         Film film = filmStorage.getById(id);
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.ADD)
+                .entityId(id)
+                .build();
+
+        eventStorage.createEvent(event);
         log.info("Лайк успешно добавлен");
         return toDto(film);
     }
@@ -106,6 +121,15 @@ public class FilmService {
             log.warn("Пользователь id: {} не ставил лайк фильму id: {}", userId, id);
             throw new NotFoundException("Такой человек не ставил лайк");
         }
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.REMOVE)
+                .entityId(id)
+                .build();
+
+        eventStorage.createEvent(event);
         log.info("Лайк успешно удалён");
     }
 
