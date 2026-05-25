@@ -150,17 +150,17 @@ public class FilmService {
         return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
     }
 
-    private void checkUserExists(long userId) {
-        if (!userStorage.findById(userId)) {
-            log.warn("Пользователь с id {} не найден", userId);
-            throw new NotFoundException("Юзер с id = " + userId + " не найден");
-        }
-    }
-
     private void checkFilmExists(long id) {
         if (!filmStorage.findById(id)) {
             log.warn("Фильм с id {} не найден", id);
             throw new NotFoundException("Фильм с id = " + id + " не найден");
+        }
+    }
+
+    private void checkUserExists(long userId) {
+        if (!userStorage.findById(userId)) {
+            log.warn("Пользователь с id {} не найден", userId);
+            throw new NotFoundException("Юзер с id = " + userId + " не найден");
         }
     }
 
