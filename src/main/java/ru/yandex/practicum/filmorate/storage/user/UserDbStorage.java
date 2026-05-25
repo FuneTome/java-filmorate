@@ -40,13 +40,24 @@ public class UserDbStorage implements UserStorage {
             "DELETE FROM Friendship WHERE user_id = ? AND friend_id = ?";
     private static final String CHECK_FRIEND_EXISTS =
             "SELECT COUNT(*) FROM Friendship WHERE user_id = ? AND friend_id = ?";
-    private static final String GET_RECOMMENDATION =
-            "SELECT f.* FROM film f JOIN film_like fl ON f.film_id = fl.film_id " +
-            "WHERE fl.user_id = (SELECT user_id FROM film_like WHERE film_id IN " +
-            "(SELECT film_id FROM film_like WHERE user_id = ?)" +
-            "AND user_id != ?" +
-            "GROUP BY user_id ORDER BY COUNT(*) DESC LIMIT 1)" +
-            "AND f.film_id NOT IN (SELECT film_id FROM film_like WHERE user_id = ?);";
+    private static final String GET_RECOMMENDATION = """
+            SELECT f.* FROM film f
+            JOIN film_like fl ON f.film_id = fl.film_id
+            WHERE fl.user_id = (
+                    SELECT user_id FROM film_like
+                    WHERE film_id IN (
+                        SELECT film_id FROM film_like
+                        WHERE user_id = ?
+                        )
+                    AND user_id != ?
+                    GROUP BY user_id
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 1
+                    )
+            AND f.film_id NOT IN (
+                SELECT film_id FROM film_like
+                WHERE user_id = ?
+            ); """;
     private final FilmRowMapper filmRowMapper;
 
     @Override
