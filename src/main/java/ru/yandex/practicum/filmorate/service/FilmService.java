@@ -82,10 +82,6 @@ public class FilmService {
         return filmMapper.toDto(updated);
     }
 
-    public Collection<FilmDto> getListFilm(int count) {
-        return getListFilm(count, null, null);
-    }
-
     public Collection<FilmDto> getListFilm(int count, Integer genreId, Integer year) {
         log.info("Запрос на получение {} популярных фильмов (жанр: {}, год: {})", count, genreId, year);
         if (genreId != null) {

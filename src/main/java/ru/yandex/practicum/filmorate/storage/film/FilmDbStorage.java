@@ -130,11 +130,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularFilms(int count) {
-        return getPopularFilms(count, null, null);
-    }
-
-    @Override
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         StringBuilder sql = new StringBuilder(
                 "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, " +
@@ -205,9 +200,7 @@ public class FilmDbStorage implements FilmStorage {
                  ORDER BY COUNT(DISTINCT fl.user_id) DESC
                 """);
 
-        MapSqlParameterSource params =
-                new MapSqlParameterSource();
-
+        MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("query", query);
 
         List<Film> films = namedJdbc.query(sql.toString(), params, filmRowMapper);
