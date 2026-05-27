@@ -155,6 +155,14 @@ public class FilmService {
         return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
     }
 
+    public List<FilmDto> getCommonFilms(Long userId, Long friendId) {
+        checkUserExists(userId);
+        checkUserExists(friendId);
+
+        List<Film> commonFilms = filmStorage.getCommonFilms(userId, friendId);
+        return commonFilms.stream().map(filmMapper::toDto).collect(Collectors.toList());
+    }
+
     private void checkFilmExists(long id) {
         if (!filmStorage.findById(id)) {
             log.warn("Фильм с id {} не найден", id);
