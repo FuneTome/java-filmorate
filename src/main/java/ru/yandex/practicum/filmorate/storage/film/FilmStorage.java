@@ -29,4 +29,6 @@ public interface FilmStorage {
     List<Film> getFilmsByDirector(long directorId, SortByOption sortBy);
 
     List<Film> searchFilms(String query, Set<SearchBy> by);
+
+    List<Film> getCommonFilms(Long userId, Long friendId);
 }
