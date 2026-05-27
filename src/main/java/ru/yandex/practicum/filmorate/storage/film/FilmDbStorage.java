@@ -218,8 +218,21 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public void deleteFilm(Long id) {
-        jdbcTemplate.update(DELETE_FILM, id);
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        String sql = """
+            SELECT f.*
+            FROM film f
+            JOIN film_like l1 ON f.film_id = l1.film_id AND l1.user_id = ?
+            JOIN film_like l2 ON f.film_id = l2.film_id AND l2.user_id = ?
+            LEFT JOIN film_like all_likes ON f.film_id = all_likes.film_id
+            GROUP BY f.film_id
+            ORDER BY COUNT(all_likes.user_id) DESC
+            """;
+
+        List<Film> films = jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
+        films.forEach(this::enrichFilmWithDetails);
+
+        return films;
     }
 
     private void saveGenres(Film film) {

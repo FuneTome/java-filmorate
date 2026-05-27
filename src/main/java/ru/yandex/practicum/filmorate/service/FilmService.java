@@ -199,6 +199,14 @@ public class FilmService {
         }
     }
 
+    public List<FilmDto> getCommonFilms(Long userId, Long friendId) {
+        checkUserExists(userId);
+        checkUserExists(friendId);
+
+        List<Film> commonFilms = filmStorage.getCommonFilms(userId, friendId);
+        return commonFilms.stream().map(filmMapper::toDto).collect(Collectors.toList());
+    }
+
     private void validateMpaAndGenres(Film film) {
         if (film.getRating() != null) {
             mpaService.getRatingById(film.getRating().getId());
