@@ -61,6 +61,12 @@ public class FilmDbStorage implements FilmStorage {
             LEFT JOIN director_film df ON f.film_id = df.film_id
             LEFT JOIN director d ON d.director_id = df.director_id
             """;
+    private static final String DELETE_FILM = "DELETE FROM Film WHERE film_id = ?";
+    private static final String DELETE_FILM_LIKES = "DELETE FROM Film_like WHERE film_id = ?";
+    private static final String DELETE_FILM_REVIEWS = "DELETE FROM reviews WHERE film_id = ?";
+    private static final String DELETE_FILM_REVIEW_REACTIONS =
+            "DELETE FROM review_reactions WHERE review_id IN (SELECT review_id FROM reviews WHERE film_id = ?)";
+    private static final String DELETE_FILM_EVENTS = "DELETE FROM events WHERE entity_id = ? AND event_type = 'LIKE'";
 
     @Override
     public Film addFilm(Film film) {
@@ -213,6 +219,17 @@ public class FilmDbStorage implements FilmStorage {
         });
 
         return films;
+    }
+
+    @Override
+    public void deleteFilm(Long id) {
+        jdbcTemplate.update(DELETE_FILM_REVIEW_REACTIONS, id);
+        jdbcTemplate.update(DELETE_FILM_REVIEWS, id);
+        jdbcTemplate.update(DELETE_FILM_LIKES, id);
+        jdbcTemplate.update(DELETE_FILM_GENRES, id);
+        jdbcTemplate.update(DELETE_FILM_DIRECTORS, id);
+        jdbcTemplate.update(DELETE_FILM_EVENTS, id);
+        jdbcTemplate.update(DELETE_FILM, id);
     }
 
     private void saveGenres(Film film) {

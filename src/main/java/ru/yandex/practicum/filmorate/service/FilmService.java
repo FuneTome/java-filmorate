@@ -82,6 +82,16 @@ public class FilmService {
         return filmMapper.toDto(updated);
     }
 
+    public void deleteFilm(Long id) {
+        log.info("Запрос на удаление фильма с id: {}", id);
+        if (!filmStorage.findById(id)) {
+            log.warn("Фильм с id {} не найден для удаления", id);
+            throw new NotFoundException("Фильм с id = " + id + " не найден");
+        }
+        filmStorage.deleteFilm(id);
+        log.info("Фильм с id {} успешно удалён", id);
+    }
+
     public Collection<FilmDto> getListFilm(int count, Integer genreId, Integer year) {
         log.info("Запрос на получение {} популярных фильмов (жанр: {}, год: {})", count, genreId, year);
         if (genreId != null) {

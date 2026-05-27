@@ -60,6 +60,12 @@ public class UserController {
         return userService.updateUser(request);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+    }
+
     @GetMapping("/{id}/recommendations")
     public Collection<FilmDto> getRecommendations(@PathVariable Long id) {
         return userService.getRecommendations(id);
