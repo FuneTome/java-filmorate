@@ -29,7 +29,6 @@ public class FilmDbStorage implements FilmStorage {
             "INSERT INTO Film (name, description, release_date, duration, rating_id) VALUES (?, ?, ?, ?, ?)";
     private static final String UPDATE_FILM =
             "UPDATE Film SET name = ?, description = ?, release_date = ?, duration = ?, rating_id = ? WHERE film_id = ?";
-    private static final String DELETE_FILM_GENRES = "DELETE FROM Film_genre WHERE film_id = ?";
     private static final String INSERT_FILM_GENRE = "INSERT INTO Film_genre (film_id, genre_id) VALUES (?, ?)";
     private static final String INSERT_FILM_DIRECTOR = "INSERT INTO Director_film (film_id, director_id) VALUES (?, ?)";
     private static final String FIND_FILM_BY_ID =
@@ -44,7 +43,6 @@ public class FilmDbStorage implements FilmStorage {
     private static final String CHECK_LIKE_EXISTS = "SELECT COUNT(*) FROM Film_like WHERE film_id = ? AND user_id = ?";
     private static final String FIND_DIRECTORS_FOR_FILMS =
             "SELECT df.film_id, d.director_id, d.name FROM director_film df JOIN director d ON df.director_id = d.director_id";
-    private static final String DELETE_FILM_DIRECTORS = "DELETE FROM director_film WHERE film_id = ?";
     private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR =
             "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
                     "FROM Film f JOIN Director_film df ON f.film_id = df.film_id WHERE df.director_id = ? ORDER BY f.release_date";
@@ -63,11 +61,6 @@ public class FilmDbStorage implements FilmStorage {
             LEFT JOIN director d ON d.director_id = df.director_id
             """;
     private static final String DELETE_FILM = "DELETE FROM Film WHERE film_id = ?";
-    private static final String DELETE_FILM_LIKES = "DELETE FROM Film_like WHERE film_id = ?";
-    private static final String DELETE_FILM_REVIEWS = "DELETE FROM reviews WHERE film_id = ?";
-    private static final String DELETE_FILM_REVIEW_REACTIONS =
-            "DELETE FROM review_reactions WHERE review_id IN (SELECT review_id FROM reviews WHERE film_id = ?)";
-    private static final String DELETE_FILM_EVENTS = "DELETE FROM events WHERE entity_id = ? AND event_type = 'LIKE'";
 
     @Override
     public Film addFilm(Film film) {
@@ -98,10 +91,10 @@ public class FilmDbStorage implements FilmStorage {
         jdbcTemplate.update(UPDATE_FILM,
                 newFilm.getName(), newFilm.getDescription(), Date.valueOf(newFilm.getReleaseDate()),
                 newFilm.getDuration(), newFilm.getRating().getId(), filmId);
-        jdbcTemplate.update(DELETE_FILM_GENRES, filmId);
+        jdbcTemplate.update("DELETE FROM Film_genre WHERE film_id = ?", filmId);
         newFilm.setId(filmId);
         saveGenres(newFilm);
-        jdbcTemplate.update(DELETE_FILM_DIRECTORS, filmId);
+        jdbcTemplate.update("DELETE FROM director_film WHERE film_id = ?", filmId);
         saveDirector(newFilm);
         return newFilm;
     }
@@ -226,12 +219,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void deleteFilm(Long id) {
-        jdbcTemplate.update(DELETE_FILM_REVIEW_REACTIONS, id);
-        jdbcTemplate.update(DELETE_FILM_REVIEWS, id);
-        jdbcTemplate.update(DELETE_FILM_LIKES, id);
-        jdbcTemplate.update(DELETE_FILM_GENRES, id);
-        jdbcTemplate.update(DELETE_FILM_DIRECTORS, id);
-        jdbcTemplate.update(DELETE_FILM_EVENTS, id);
         jdbcTemplate.update(DELETE_FILM, id);
     }
 

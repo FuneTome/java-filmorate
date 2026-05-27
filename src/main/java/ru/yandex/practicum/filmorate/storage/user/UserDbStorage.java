@@ -59,16 +59,6 @@ public class UserDbStorage implements UserStorage {
                 WHERE user_id = ?
             ); """;
     private static final String DELETE_USER = "DELETE FROM Users WHERE user_id = ?";
-    private static final String DELETE_USER_FRIENDSHIPS =
-            "DELETE FROM Friendship WHERE user_id = ? OR friend_id = ?";
-    private static final String DELETE_USER_LIKES =
-            "DELETE FROM Film_like WHERE user_id = ?";
-    private static final String DELETE_USER_REVIEWS =
-            "DELETE FROM reviews WHERE user_id = ?";
-    private static final String DELETE_USER_REVIEW_REACTIONS =
-            "DELETE FROM review_reactions WHERE user_id = ?";
-    private static final String DELETE_USER_EVENTS =
-            "DELETE FROM events WHERE user_id = ?";
 
     private final FilmRowMapper filmRowMapper;
 
@@ -166,11 +156,6 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void deleteUser(Long id) {
-        jdbcTemplate.update(DELETE_USER_REVIEW_REACTIONS, id);
-        jdbcTemplate.update(DELETE_USER_REVIEWS, id);
-        jdbcTemplate.update(DELETE_USER_LIKES, id);
-        jdbcTemplate.update(DELETE_USER_FRIENDSHIPS, id, id);
-        jdbcTemplate.update(DELETE_USER_EVENTS, id);
         jdbcTemplate.update(DELETE_USER, id);
     }
 }
