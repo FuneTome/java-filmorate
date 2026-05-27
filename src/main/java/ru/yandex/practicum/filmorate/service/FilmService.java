@@ -70,13 +70,11 @@ public class FilmService {
             log.warn("Попытка обновления фильма без указания id");
             throw new ValidationException("Id должен быть указан");
         }
-
         checkFilmExists(request.getId());
 
         Film film = filmMapper.toFilm(request);
         isValid(film);
         validateMpaAndGenres(film);
-
         Film oldFilm = filmStorage.getById(request.getId());
         filmStorage.updateFilm(oldFilm, film);
         Film updated = filmStorage.getById(request.getId());
@@ -84,9 +82,20 @@ public class FilmService {
         return filmMapper.toDto(updated);
     }
 
-    public Collection<FilmDto> getListFilm(int count) {
-        log.info("Запрос на получение {} популярных фильмов", count);
-        List<Film> popular = filmStorage.getPopularFilms(count);
+    public Collection<FilmDto> getListFilm(int count, Integer genreId, Integer year) {
+        log.info("Запрос на получение {} популярных фильмов (жанр: {}, год: {})", count, genreId, year);
+        if (genreId != null) {
+            genreService.getGenreById(genreId);
+        }
+        if (year != null) {
+            if (year < FIRST_FILM_DATE.getYear()) {
+                throw new ValidationException("Год не может быть раньше " + FIRST_FILM_DATE.getYear());
+            }
+            if (year > LocalDate.now().getYear()) {
+                throw new ValidationException("Год не может быть в будущем");
+            }
+        }
+        List<Film> popular = filmStorage.getPopularFilms(count, genreId, year);
         return popular.stream()
                 .map(filmMapper::toDto)
                 .collect(Collectors.toList());
@@ -96,7 +105,6 @@ public class FilmService {
         log.info("Запрос на добавление лайка фильму id: {} от пользователя id: {}", id, userId);
         checkFilmExists(id);
         checkUserExists(userId);
-
         if (!filmStorage.addLike(id, userId)) {
             log.warn("Пользователь id: {} уже ставил лайк фильму id: {}", userId, id);
             throw new NotFoundException("Такой человек уже ставил лайк");
@@ -109,7 +117,6 @@ public class FilmService {
                 .operation(Operation.ADD)
                 .entityId(id)
                 .build();
-
         eventStorage.createEvent(event);
         log.info("Лайк успешно добавлен");
         return filmMapper.toDto(film);
@@ -119,7 +126,6 @@ public class FilmService {
         log.info("Запрос на удаление лайка фильму id: {} от пользователя id: {}", id, userId);
         checkFilmExists(id);
         checkUserExists(userId);
-
         if (!filmStorage.removeLike(id, userId)) {
             log.warn("Пользователь id: {} не ставил лайк фильму id: {}", userId, id);
             throw new NotFoundException("Такой человек не ставил лайк");
@@ -131,7 +137,6 @@ public class FilmService {
                 .operation(Operation.REMOVE)
                 .entityId(id)
                 .build();
-
         eventStorage.createEvent(event);
         log.info("Лайк успешно удалён");
     }
@@ -145,7 +150,6 @@ public class FilmService {
     public Collection<FilmDto> getFilmsByDirector(long directorId, SortByOption sortBy) {
         log.info("Запрос на получение фильмов режиссёра id: {} с сортировкой: {}", directorId, sortBy);
         checkDirectorExists(directorId);
-
         List<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
         return films.stream().map(filmMapper::toDto).collect(Collectors.toList());
     }
