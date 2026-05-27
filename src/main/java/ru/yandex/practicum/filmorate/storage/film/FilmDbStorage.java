@@ -227,7 +227,10 @@ public class FilmDbStorage implements FilmStorage {
             ORDER BY COUNT(all_likes.user_id) DESC
             """;
 
-        return jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
+        List<Film> films = jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
+        films.forEach(this::enrichFilmWithDetails);
+
+        return films;
     }
 
     private void saveGenres(Film film) {
