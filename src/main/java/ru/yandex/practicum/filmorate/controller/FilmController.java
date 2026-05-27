@@ -66,4 +66,11 @@ public class FilmController {
     public Collection<FilmDto> searchFilms(@Valid @ModelAttribute FilmSearchRequest searchRequest) {
         return filmService.searchFilms(searchRequest);
     }
+
+    @GetMapping("/common")
+    public Collection<FilmDto> getCommonFilms (
+            @RequestParam Long userId,
+            @RequestParam Long friendId) {
+        return filmService.getCommonFilms(userId, friendId);
+    }
 }
