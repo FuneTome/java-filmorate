@@ -153,6 +153,7 @@ public class FilmService {
 
     public FilmDto getFilmById(long filmId) {
         log.info("Запрос на получение фильма по id: {}", filmId);
+        checkFilmExists(filmId);
         Film film = filmStorage.getById(filmId);
         return filmMapper.toDto(film);
     }

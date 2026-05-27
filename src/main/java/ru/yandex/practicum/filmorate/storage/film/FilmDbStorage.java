@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -113,11 +114,13 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film getById(Long id) {
-        Film film = jdbcTemplate.queryForObject(FIND_FILM_BY_ID, filmRowMapper, id);
-        if (film != null) {
+        try {
+            Film film = jdbcTemplate.queryForObject(FIND_FILM_BY_ID, filmRowMapper, id);
             enrichFilmWithDetails(film);
+            return film;
+        } catch (EmptyResultDataAccessException e) {
+            return null;
         }
-        return film;
     }
 
     @Override
