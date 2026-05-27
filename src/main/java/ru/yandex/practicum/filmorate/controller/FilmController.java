@@ -39,6 +39,12 @@ public class FilmController {
         return filmService.updateFilm(request);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFilm(@PathVariable long id) {
+        filmService.deleteFilm(id);
+    }
+
     @GetMapping("/popular")
     public Collection<FilmDto> getPopularFilms(
             @RequestParam(defaultValue = "10") int count,

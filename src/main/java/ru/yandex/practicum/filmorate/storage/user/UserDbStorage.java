@@ -58,6 +58,8 @@ public class UserDbStorage implements UserStorage {
                 SELECT film_id FROM film_like
                 WHERE user_id = ?
             ); """;
+    private static final String DELETE_USER = "DELETE FROM Users WHERE user_id = ?";
+
     private final FilmRowMapper filmRowMapper;
 
     @Override
@@ -150,5 +152,10 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<Film> getRecommendations(Long id) {
         return jdbcTemplate.query(GET_RECOMMENDATION, filmRowMapper, id, id, id);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        jdbcTemplate.update(DELETE_USER, id);
     }
 }

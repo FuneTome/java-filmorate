@@ -85,6 +85,16 @@ public class UserService {
         return userMapper.toDto(updated);
     }
 
+    public void deleteUser(Long id) {
+        log.info("Запрос на удаление пользователя с id: {}", id);
+        if (!userStorage.findById(id)) {
+            log.warn("Пользователь с id {} не найден для удаления", id);
+            throw new NotFoundException("Юзер с id = " + id + " не найден");
+        }
+        userStorage.deleteUser(id);
+        log.info("Пользователь с id {} успешно удалён", id);
+    }
+
     public UserDto addFriend(Long id, Long friendId) {
         log.info("Запрос на добавление друга id: {} пользователю id: {}", friendId, id);
         checkUserExists(id);

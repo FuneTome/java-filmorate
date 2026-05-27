@@ -36,25 +36,25 @@ CREATE TABLE IF NOT EXISTS friendship (
     friend_id INTEGER,
     friendship_status_id INTEGER,
     PRIMARY KEY (user_id, friend_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (friend_id) REFERENCES users(user_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (friendship_status_id) REFERENCES friendship_status(friendship_status_id)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS film_like (
     user_id INTEGER,
     film_id INTEGER,
     PRIMARY KEY (film_id, user_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (film_id) REFERENCES film(film_id)
-    );
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (film_id) REFERENCES film(film_id) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS film_genre (
     genre_id INTEGER,
     film_id INTEGER,
     PRIMARY KEY (film_id, genre_id),
     FOREIGN KEY (genre_id) REFERENCES genre(genre_id),
-    FOREIGN KEY (film_id) REFERENCES film(film_id)
+    FOREIGN KEY (film_id) REFERENCES film(film_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS director (
@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS reviews (
     user_id INTEGER,
     film_id INTEGER,
     useful INTEGER DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (film_id) REFERENCES film(film_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (film_id) REFERENCES film(film_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS review_reactions (
