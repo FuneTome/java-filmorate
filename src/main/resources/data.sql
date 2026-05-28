@@ -31,3 +31,6 @@ MERGE INTO genre (genre_id, name) KEY(genre_id) VALUES (3, 'Мультфильм
 MERGE INTO genre (genre_id, name) KEY(genre_id) VALUES (4, 'Триллер');
 MERGE INTO genre (genre_id, name) KEY(genre_id) VALUES (5, 'Документальный');
 MERGE INTO genre (genre_id, name) KEY(genre_id) VALUES (6, 'Боевик');
+
+MERGE INTO friendship_status (friendship_status_id, status) KEY(friendship_status_id) VALUES (1, 'PENDING');
+MERGE INTO friendship_status (friendship_status_id, status) KEY(friendship_status_id) VALUES (2, 'CONFIRMED');
