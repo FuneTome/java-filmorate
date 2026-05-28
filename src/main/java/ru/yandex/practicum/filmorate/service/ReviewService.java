@@ -33,7 +33,9 @@ public class ReviewService {
     private final EventStorage eventStorage;
 
     public List<ReviewDto> getReviews(Long filmId, int count) throws NotFoundException {
-        filmExists(filmId);
+        if (filmId != null) {
+            filmExists(filmId);
+        }
         return storage.getReviews(filmId, count).stream()
                 .map(mapper::toDto).collect(Collectors.toCollection(ArrayList::new));
     }

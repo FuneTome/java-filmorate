@@ -58,7 +58,7 @@ public class UserService {
         log.info("Запрос на добавление нового пользователя: {}", request.getLogin());
         User user = userMapper.toUser(request);
         isValid(user);
-        if (user.getName() == null) {
+        if (user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
         User saved = userStorage.addUser(user);
