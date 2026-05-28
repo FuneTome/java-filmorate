@@ -102,7 +102,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean findById(Long id) {
         Integer count = jdbcTemplate.queryForObject(COUNT_FILM_BY_ID, Integer.class, id);
-        return count != null && count > 0;
+        return count > 0;
     }
 
     @Override
@@ -259,6 +259,11 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void enrichFilmWithDetails(Film film) {
+
+        if (film == null) {
+            return;
+        }
+
         List<Genre> genres = jdbcTemplate.query(
                 "SELECT g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ? ORDER BY g.genre_id",
                 (rs, rowNum) -> new Genre(rs.getInt("genre_id"), rs.getString("name")), film.getId());
@@ -297,7 +302,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean addLike(Long filmId, Long userId) {
         Integer count = jdbcTemplate.queryForObject(CHECK_LIKE_EXISTS, Integer.class, filmId, userId);
-        if (count != null && count > 0) {
+        if (count > 0) {
             return false;
         }
         jdbcTemplate.update(INSERT_LIKE, filmId, userId);
