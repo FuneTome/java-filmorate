@@ -57,7 +57,8 @@ public class UserDbStorage implements UserStorage {
             AND f.film_id NOT IN (
                 SELECT film_id FROM film_like
                 WHERE user_id = ?
-            ); """;
+                )
+            """;
     private static final String DELETE_USER = "DELETE FROM Users WHERE user_id = ?";
 
     private final FilmRowMapper filmRowMapper;
@@ -98,14 +99,13 @@ public class UserDbStorage implements UserStorage {
     @Override
     public boolean findById(Long id) {
         Integer count = jdbcTemplate.queryForObject(COUNT_USER_BY_ID, Integer.class, id);
-        return count != null && count > 0;
+        return count > 0;
     }
 
     @Override
     public User getById(Long id) {
         try {
-            User user = jdbcTemplate.queryForObject(FIND_USER_BY_ID, userRowMapper, id);
-            return user;
+            return jdbcTemplate.queryForObject(FIND_USER_BY_ID, userRowMapper, id);
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchElementException("Пользователь с id=" + id + " не найден");
         }
@@ -113,17 +113,24 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getFriends(long userId) {
-        return jdbcTemplate.query(
-                "SELECT u.* FROM users u JOIN friendship f ON u.user_id = f.friend_id WHERE f.user_id = ? AND f.friendship_status_id = 2",
+        return jdbcTemplate.query("""
+                        SELECT u.* FROM users u
+                        JOIN friendship f
+                            ON u.user_id = f.friend_id
+                        WHERE f.user_id = ? AND f.friendship_status_id = 2
+                        """,
                 userRowMapper, userId);
     }
 
     @Override
     public List<User> getCommonFriends(long userId, long otherId) {
-        return jdbcTemplate.query(
-                "SELECT u.* FROM users u " +
-                        "JOIN friendship f1 ON u.user_id = f1.friend_id AND f1.user_id = ? AND f1.friendship_status_id = 2 " +
-                        "JOIN friendship f2 ON u.user_id = f2.friend_id AND f2.user_id = ? AND f2.friendship_status_id = 2",
+        return jdbcTemplate.query("""
+                        SELECT u.* FROM users u
+                        JOIN friendship f1
+                            ON u.user_id = f1.friend_id AND f1.user_id = ? AND f1.friendship_status_id = 2
+                        JOIN friendship f2
+                            ON u.user_id = f2.friend_id AND f2.user_id = ? AND f2.friendship_status_id = 2
+                        """,
                 userRowMapper, userId, otherId);
     }
 
@@ -136,7 +143,7 @@ public class UserDbStorage implements UserStorage {
     @Override
     public boolean addFriend(Long userId, Long friendId) {
         Integer count = jdbcTemplate.queryForObject(CHECK_FRIEND_EXISTS, Integer.class, userId, friendId);
-        if (count != null && count > 0) {
+        if (count > 0) {
             return false;
         }
         jdbcTemplate.update(INSERT_FRIEND, userId, friendId);

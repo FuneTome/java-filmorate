@@ -114,7 +114,6 @@ public class FilmService {
         checkUserExists(userId);
         if (!filmStorage.addLike(id, userId)) {
             log.warn("Пользователь id: {} уже ставил лайк фильму id: {}", userId, id);
-            throw new NotFoundException("Такой человек уже ставил лайк");
         }
         Film film = filmStorage.getById(id);
         Event event = Event.builder()

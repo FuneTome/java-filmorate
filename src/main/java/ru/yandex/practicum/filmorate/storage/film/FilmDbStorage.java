@@ -29,36 +29,78 @@ public class FilmDbStorage implements FilmStorage {
             "INSERT INTO Film (name, description, release_date, duration, rating_id) VALUES (?, ?, ?, ?, ?)";
     private static final String UPDATE_FILM =
             "UPDATE Film SET name = ?, description = ?, release_date = ?, duration = ?, rating_id = ? WHERE film_id = ?";
-    private static final String INSERT_FILM_GENRE = "INSERT INTO Film_genre (film_id, genre_id) VALUES (?, ?)";
-    private static final String INSERT_FILM_DIRECTOR = "INSERT INTO Director_film (film_id, director_id) VALUES (?, ?)";
+    private static final String INSERT_FILM_GENRE =
+            "INSERT INTO Film_genre (film_id, genre_id) VALUES (?, ?)";
+    private static final String INSERT_FILM_DIRECTOR =
+            "INSERT INTO Director_film (film_id, director_id) VALUES (?, ?)";
     private static final String FIND_FILM_BY_ID =
             "SELECT film_id, name, description, release_date, duration, rating_id FROM Film WHERE film_id = ?";
     private static final String FIND_ALL_FILMS =
             "SELECT film_id, name, description, release_date, duration, rating_id FROM Film";
-    private static final String COUNT_FILM_BY_ID = "SELECT COUNT(*) FROM Film WHERE film_id = ?";
-    private static final String FIND_GENRES_FOR_FILMS =
-            "SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id";
-    private static final String INSERT_LIKE = "INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)";
-    private static final String DELETE_LIKE = "DELETE FROM Film_like WHERE film_id = ? AND user_id = ?";
-    private static final String CHECK_LIKE_EXISTS = "SELECT COUNT(*) FROM Film_like WHERE film_id = ? AND user_id = ?";
-    private static final String FIND_DIRECTORS_FOR_FILMS =
-            "SELECT df.film_id, d.director_id, d.name FROM director_film df JOIN director d ON df.director_id = d.director_id";
-    private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR =
-            "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
-                    "FROM Film f JOIN Director_film df ON f.film_id = df.film_id WHERE df.director_id = ? ORDER BY f.release_date";
-    private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES =
-            "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
-                    "FROM Film f JOIN Director_film df ON f.film_id = df.film_id " +
-                    "LEFT JOIN Film_like fl ON f.film_id = fl.film_id " +
-                    "WHERE df.director_id = ? " +
-                    "GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
-                    "ORDER BY COUNT(fl.user_id) DESC";
+    private static final String COUNT_FILM_BY_ID =
+            "SELECT COUNT(*) FROM Film WHERE film_id = ?";
+    private static final String FIND_GENRES_FOR_FILMS = """
+            SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg
+            JOIN genre g ON fg.genre_id = g.genre_id
+            ORDER BY g.genre_id
+            """;
+    private static final String INSERT_LIKE =
+            "INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)";
+    private static final String DELETE_LIKE =
+            "DELETE FROM Film_like WHERE film_id = ? AND user_id = ?";
+    private static final String CHECK_LIKE_EXISTS =
+            "SELECT COUNT(*) FROM Film_like WHERE film_id = ? AND user_id = ?";
+    private static final String FIND_DIRECTORS_FOR_FILMS = """
+            SELECT df.film_id,
+                   d.director_id,
+                   d.name
+            FROM director_film df
+            JOIN director d
+                ON df.director_id = d.director_id
+            """;
+    private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR = """
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   f.rating_id
+            FROM Film f
+            JOIN Director_film df
+                ON f.film_id = df.film_id
+            WHERE df.director_id = ?
+            ORDER BY f.release_date ASC, f.film_id ASC
+            """;
+    private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES = """
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   f.rating_id
+            FROM Film f
+            JOIN Director_film df
+                ON f.film_id = df.film_id
+            LEFT JOIN Film_like fl
+                ON f.film_id = fl.film_id
+            WHERE df.director_id = ?
+            GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
+            ORDER BY COUNT(fl.user_id) DESC
+            """;
     private static final String FIND_FILM_BY_PARAMS_BASE = """
-            SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   f.rating_id
             FROM film f
-            LEFT JOIN film_like fl ON f.film_id = fl.film_id
-            LEFT JOIN director_film df ON f.film_id = df.film_id
-            LEFT JOIN director d ON d.director_id = df.director_id
+            LEFT JOIN film_like fl
+                ON f.film_id = fl.film_id
+            LEFT JOIN director_film df
+                ON f.film_id = df.film_id
+            LEFT JOIN director d
+                ON d.director_id = df.director_id
             """;
     private static final String DELETE_FILM = "DELETE FROM Film WHERE film_id = ?";
 
@@ -102,7 +144,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean findById(Long id) {
         Integer count = jdbcTemplate.queryForObject(COUNT_FILM_BY_ID, Integer.class, id);
-        return count != null && count > 0;
+        return count > 0;
     }
 
     @Override
@@ -133,9 +175,18 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, " +
-                        "COUNT(fl.user_id) AS like_count FROM film f LEFT JOIN film_like fl ON f.film_id = fl.film_id ");
+        StringBuilder sql = new StringBuilder("""
+                SELECT f.film_id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       f.rating_id,
+                       COUNT(fl.user_id) AS like_count
+                FROM film f
+                LEFT JOIN film_like fl
+                    ON f.film_id = fl.film_id
+                """);
         List<Object> params = new ArrayList<>();
         List<String> conditions = new ArrayList<>();
         if (year != null) {
@@ -165,7 +216,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getFilmsByDirector(long directorId, SortByOption sortBy) {
         List<Film> films;
-        if ("year".equals(sortBy.toString())) {
+        if (sortBy == SortByOption.YEAR) {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR, filmRowMapper, directorId);
         } else {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES, filmRowMapper, directorId);
@@ -198,8 +249,13 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         sql.append("""
-                 GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
-                 ORDER BY COUNT(DISTINCT fl.user_id) DESC
+                GROUP BY f.film_id,
+                         f.name,
+                         f.description,
+                         f.release_date,
+                         f.duration,
+                         f.rating_id
+                ORDER BY COUNT(DISTINCT fl.user_id) DESC
                 """);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -220,14 +276,17 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
-            SELECT f.*
-            FROM film f
-            JOIN film_like l1 ON f.film_id = l1.film_id AND l1.user_id = ?
-            JOIN film_like l2 ON f.film_id = l2.film_id AND l2.user_id = ?
-            LEFT JOIN film_like all_likes ON f.film_id = all_likes.film_id
-            GROUP BY f.film_id
-            ORDER BY COUNT(all_likes.user_id) DESC
-            """;
+                SELECT f.*
+                FROM film f
+                JOIN film_like l1
+                    ON f.film_id = l1.film_id AND l1.user_id = ?
+                JOIN film_like l2
+                    ON f.film_id = l2.film_id AND l2.user_id = ?
+                LEFT JOIN film_like all_likes
+                    ON f.film_id = all_likes.film_id
+                GROUP BY f.film_id
+                ORDER BY COUNT(all_likes.user_id) DESC
+                """;
 
         List<Film> films = jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
         films.forEach(this::enrichFilmWithDetails);
@@ -259,12 +318,30 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void enrichFilmWithDetails(Film film) {
-        List<Genre> genres = jdbcTemplate.query(
-                "SELECT g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ?",
+
+        if (film == null) {
+            return;
+        }
+
+        List<Genre> genres = jdbcTemplate.query("""
+                        SELECT g.genre_id,
+                               g.name
+                        FROM film_genre fg
+                        JOIN genre g
+                            ON fg.genre_id = g.genre_id
+                        WHERE fg.film_id = ?
+                        ORDER BY g.genre_id
+                        """,
                 (rs, rowNum) -> new Genre(rs.getInt("genre_id"), rs.getString("name")), film.getId());
         film.setGenres(new HashSet<>(genres));
-        List<Director> directors = jdbcTemplate.query(
-                "SELECT d.director_id, d.name FROM director_film df JOIN director d ON df.director_id = d.director_id WHERE df.film_id = ?",
+        List<Director> directors = jdbcTemplate.query("""
+                        SELECT d.director_id,
+                               d.name
+                        FROM director_film df
+                        JOIN director d
+                            ON df.director_id = d.director_id
+                        WHERE df.film_id = ?
+                        """,
                 (rs, rowNum) -> new Director(rs.getLong("director_id"), rs.getString("name")), film.getId());
         film.setDirector(new HashSet<>(directors));
     }
@@ -297,7 +374,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean addLike(Long filmId, Long userId) {
         Integer count = jdbcTemplate.queryForObject(CHECK_LIKE_EXISTS, Integer.class, filmId, userId);
-        if (count != null && count > 0) {
+        if (count > 0) {
             return false;
         }
         jdbcTemplate.update(INSERT_LIKE, filmId, userId);

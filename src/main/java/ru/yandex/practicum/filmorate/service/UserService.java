@@ -11,12 +11,15 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mappers.FilmMapper;
 import ru.yandex.practicum.filmorate.mappers.UserMapper;
 import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.event.EventStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,15 +29,18 @@ public class UserService {
     private final EventStorage eventStorage;
     private final FilmMapper filmMapper;
     private final UserMapper userMapper;
+    private final FilmStorage filmStorage;
 
     public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
                        EventStorage eventStorage,
                        FilmMapper filmMapper,
-                       UserMapper userMapper) {
+                       UserMapper userMapper,
+                       @Qualifier("filmDbStorage") FilmStorage filmStorage) {
         this.userStorage = userStorage;
         this.eventStorage = eventStorage;
         this.filmMapper = filmMapper;
         this.userMapper = userMapper;
+        this.filmStorage = filmStorage;
     }
 
     public Collection<UserDto> getUsers() {
@@ -58,7 +64,7 @@ public class UserService {
         log.info("Запрос на добавление нового пользователя: {}", request.getLogin());
         User user = userMapper.toUser(request);
         isValid(user);
-        if (user.getName() == null) {
+        if (user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
         User saved = userStorage.addUser(user);
@@ -160,9 +166,13 @@ public class UserService {
     }
 
     public Collection<FilmDto> getRecommendations(Long id) {
-        log.info("Запрос на получение рекоммендации для пользователя с id: {}", id);
+        log.info("Запрос на получение рекомендации для пользователя с id: {}", id);
         checkUserExists(id);
-        return userStorage.getRecommendations(id).stream()
+        List<Film> films = userStorage.getRecommendations(id);
+        List<Film> fullFilms = films.stream()
+                .map(f -> filmStorage.getById(f.getId()))
+                .collect(Collectors.toList());
+        return fullFilms.stream()
                 .map(filmMapper::toDto)
                 .collect(Collectors.toList());
     }

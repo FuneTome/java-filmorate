@@ -33,7 +33,9 @@ public class ReviewService {
     private final EventStorage eventStorage;
 
     public List<ReviewDto> getReviews(Long filmId, int count) throws NotFoundException {
-        filmExists(filmId);
+        if (filmId != null) {
+            filmExists(filmId);
+        }
         return storage.getReviews(filmId, count).stream()
                 .map(mapper::toDto).collect(Collectors.toCollection(ArrayList::new));
     }
@@ -67,17 +69,18 @@ public class ReviewService {
 
         log.debug("Обновление отзыва c id {}", reviewId);
 
-        reviewExists(reviewId);
+        Review oldReview = storage.getReviewById(reviewId)
+                .orElseThrow(() -> new NotFoundException("Отзыв c id - " + reviewId + " не найден"));
 
         Review review = mapper.toReview(reviewUpdateDto);
         ReviewDto returnedReview = mapper.toDto(storage.updateReview(review));
 
         Event event = Event.builder()
                 .timestamp(System.currentTimeMillis())
-                .userId(review.getUserId())
+                .userId(oldReview.getUserId())
                 .eventType(EventType.REVIEW)
                 .operation(Operation.UPDATE)
-                .entityId(review.getId())
+                .entityId(oldReview.getId())
                 .build();
 
         eventStorage.createEvent(event);
