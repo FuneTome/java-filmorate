@@ -45,7 +45,7 @@ public class FilmDbStorage implements FilmStorage {
             "SELECT df.film_id, d.director_id, d.name FROM director_film df JOIN director d ON df.director_id = d.director_id";
     private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR =
             "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
-                    "FROM Film f JOIN Director_film df ON f.film_id = df.film_id WHERE df.director_id = ? ORDER BY f.release_date";
+                    "FROM Film f JOIN Director_film df ON f.film_id = df.film_id WHERE df.director_id = ? ORDER BY f.release_date ASC, f.film_id ASC";
     private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES =
             "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id " +
                     "FROM Film f JOIN Director_film df ON f.film_id = df.film_id " +
@@ -165,7 +165,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getFilmsByDirector(long directorId, SortByOption sortBy) {
         List<Film> films;
-        if ("year".equals(sortBy.toString())) {
+        if (sortBy == SortByOption.YEAR) {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR, filmRowMapper, directorId);
         } else {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES, filmRowMapper, directorId);
@@ -220,14 +220,14 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
-            SELECT f.*
-            FROM film f
-            JOIN film_like l1 ON f.film_id = l1.film_id AND l1.user_id = ?
-            JOIN film_like l2 ON f.film_id = l2.film_id AND l2.user_id = ?
-            LEFT JOIN film_like all_likes ON f.film_id = all_likes.film_id
-            GROUP BY f.film_id
-            ORDER BY COUNT(all_likes.user_id) DESC
-            """;
+                SELECT f.*
+                FROM film f
+                JOIN film_like l1 ON f.film_id = l1.film_id AND l1.user_id = ?
+                JOIN film_like l2 ON f.film_id = l2.film_id AND l2.user_id = ?
+                LEFT JOIN film_like all_likes ON f.film_id = all_likes.film_id
+                GROUP BY f.film_id
+                ORDER BY COUNT(all_likes.user_id) DESC
+                """;
 
         List<Film> films = jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
         films.forEach(this::enrichFilmWithDetails);
