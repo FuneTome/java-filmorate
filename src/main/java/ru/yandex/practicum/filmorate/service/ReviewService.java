@@ -69,17 +69,18 @@ public class ReviewService {
 
         log.debug("Обновление отзыва c id {}", reviewId);
 
-        reviewExists(reviewId);
+        Review oldReview = storage.getReviewById(reviewId)
+                .orElseThrow(() -> new NotFoundException("Отзыв c id - " + reviewId + " не найден"));
 
         Review review = mapper.toReview(reviewUpdateDto);
         ReviewDto returnedReview = mapper.toDto(storage.updateReview(review));
 
         Event event = Event.builder()
                 .timestamp(System.currentTimeMillis())
-                .userId(review.getUserId())
+                .userId(oldReview.getUserId())
                 .eventType(EventType.REVIEW)
                 .operation(Operation.UPDATE)
-                .entityId(review.getId())
+                .entityId(oldReview.getId())
                 .build();
 
         eventStorage.createEvent(event);
