@@ -160,7 +160,7 @@ public class UserService {
     }
 
     public Collection<FilmDto> getRecommendations(Long id) {
-        log.info("Запрос на получение рекоммендации для пользователя с id: {}", id);
+        log.info("Запрос на получение рекомендации для пользователя с id: {}", id);
         checkUserExists(id);
         return userStorage.getRecommendations(id).stream()
                 .map(filmMapper::toDto)

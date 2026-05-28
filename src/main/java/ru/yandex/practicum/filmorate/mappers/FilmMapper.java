@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.service.DirectorService;
 import ru.yandex.practicum.filmorate.service.GenreService;
 import ru.yandex.practicum.filmorate.service.MpaService;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class FilmMapper {
                         genre.setId(g.getId());
                         return genre;
                     })
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             film.setGenres(genres);
         }
         if (request.getDirectors() != null) {
@@ -52,7 +53,7 @@ public class FilmMapper {
                         director.setId(g.getId());
                         return director;
                     })
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             film.setDirector(directors);
         }
         return film;

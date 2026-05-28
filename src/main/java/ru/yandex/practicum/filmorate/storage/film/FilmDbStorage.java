@@ -37,7 +37,7 @@ public class FilmDbStorage implements FilmStorage {
             "SELECT film_id, name, description, release_date, duration, rating_id FROM Film";
     private static final String COUNT_FILM_BY_ID = "SELECT COUNT(*) FROM Film WHERE film_id = ?";
     private static final String FIND_GENRES_FOR_FILMS =
-            "SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id";
+            "SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id ORDER BY g.genre_id";
     private static final String INSERT_LIKE = "INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)";
     private static final String DELETE_LIKE = "DELETE FROM Film_like WHERE film_id = ? AND user_id = ?";
     private static final String CHECK_LIKE_EXISTS = "SELECT COUNT(*) FROM Film_like WHERE film_id = ? AND user_id = ?";
@@ -260,7 +260,7 @@ public class FilmDbStorage implements FilmStorage {
 
     private void enrichFilmWithDetails(Film film) {
         List<Genre> genres = jdbcTemplate.query(
-                "SELECT g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ?",
+                "SELECT g.genre_id, g.name FROM film_genre fg JOIN genre g ON fg.genre_id = g.genre_id WHERE fg.film_id = ? ORDER BY g.genre_id",
                 (rs, rowNum) -> new Genre(rs.getInt("genre_id"), rs.getString("name")), film.getId());
         film.setGenres(new HashSet<>(genres));
         List<Director> directors = jdbcTemplate.query(
