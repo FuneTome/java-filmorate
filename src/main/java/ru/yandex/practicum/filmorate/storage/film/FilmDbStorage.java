@@ -40,9 +40,14 @@ public class FilmDbStorage implements FilmStorage {
     private static final String COUNT_FILM_BY_ID =
             "SELECT COUNT(*) FROM Film WHERE film_id = ?";
     private static final String FIND_GENRES_FOR_FILMS = """
-            SELECT fg.film_id, g.genre_id, g.name FROM film_genre fg
-            JOIN genre g ON fg.genre_id = g.genre_id
-            ORDER BY g.genre_id
+            SELECT fg.film_id,
+                   g.genre_id,
+                   g.name
+            FROM film_genre fg
+            JOIN genre g
+                ON fg.genre_id = g.genre_id
+            WHERE fg.film_id IN (:filmIds)
+            ORDER BY fg.film_id, g.genre_id
             """;
     private static final String INSERT_LIKE =
             "INSERT INTO Film_like (film_id, user_id) VALUES (?, ?)";
@@ -57,6 +62,8 @@ public class FilmDbStorage implements FilmStorage {
             FROM director_film df
             JOIN director d
                 ON df.director_id = d.director_id
+            WHERE df.film_id IN (:filmIds)
+            ORDER BY df.film_id, d.director_id
             """;
     private static final String FIND_FILM_BY_DIRECTOR_ORDER_BY_YEAR = """
             SELECT f.film_id,
@@ -151,7 +158,7 @@ public class FilmDbStorage implements FilmStorage {
     public Film getById(Long id) {
         try {
             Film film = jdbcTemplate.queryForObject(FIND_FILM_BY_ID, filmRowMapper, id);
-            enrichFilmWithDetails(film);
+            enrichFilm(film);
             return film;
         } catch (EmptyResultDataAccessException e) {
             return null;
@@ -164,12 +171,7 @@ public class FilmDbStorage implements FilmStorage {
         if (films.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
-        Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
-        films.forEach(film -> {
-            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
-            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
-        });
+        enrichFilms(films);
         return films.stream().collect(Collectors.toMap(Film::getId, f -> f));
     }
 
@@ -204,12 +206,7 @@ public class FilmDbStorage implements FilmStorage {
         sql.append("GROUP BY f.film_id ORDER BY like_count DESC, f.film_id ASC LIMIT ?");
         params.add(count);
         List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
-        Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
-        Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
-        films.forEach(film -> {
-            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
-            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
-        });
+        enrichFilms(films);
         return films;
     }
 
@@ -221,12 +218,7 @@ public class FilmDbStorage implements FilmStorage {
         } else {
             films = jdbcTemplate.query(FIND_FILM_BY_DIRECTOR_ORDER_BY_LIKES, filmRowMapper, directorId);
         }
-        Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
-        Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
-        films.forEach(film -> {
-            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
-            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
-        });
+        enrichFilms(films);
         return films;
     }
 
@@ -262,13 +254,7 @@ public class FilmDbStorage implements FilmStorage {
         params.addValue("query", query);
 
         List<Film> films = namedJdbc.query(sql.toString(), params, filmRowMapper);
-
-        Map<Long, Set<Genre>> genresByFilm = loadAllGenres();
-        Map<Long, Set<Director>> directorsByFilm = loadAllDirectors();
-        films.forEach(film -> {
-            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
-            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
-        });
+        enrichFilms(films);
 
         return films;
     }
@@ -289,7 +275,7 @@ public class FilmDbStorage implements FilmStorage {
                 """;
 
         List<Film> films = jdbcTemplate.query(sql, filmRowMapper, userId, friendId);
-        films.forEach(this::enrichFilmWithDetails);
+        enrichFilms(films);
 
         return films;
     }
@@ -317,58 +303,55 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private void enrichFilmWithDetails(Film film) {
-
-        if (film == null) {
-            return;
-        }
-
-        List<Genre> genres = jdbcTemplate.query("""
-                        SELECT g.genre_id,
-                               g.name
-                        FROM film_genre fg
-                        JOIN genre g
-                            ON fg.genre_id = g.genre_id
-                        WHERE fg.film_id = ?
-                        ORDER BY g.genre_id
-                        """,
-                (rs, rowNum) -> new Genre(rs.getInt("genre_id"), rs.getString("name")), film.getId());
-        film.setGenres(new HashSet<>(genres));
-        List<Director> directors = jdbcTemplate.query("""
-                        SELECT d.director_id,
-                               d.name
-                        FROM director_film df
-                        JOIN director d
-                            ON df.director_id = d.director_id
-                        WHERE df.film_id = ?
-                        """,
-                (rs, rowNum) -> new Director(rs.getLong("director_id"), rs.getString("name")), film.getId());
-        film.setDirector(new HashSet<>(directors));
+    private void enrichFilms(List<Film> films) {
+        Map<Long, Set<Genre>> genresByFilm = loadGenresForFilms(films);
+        Map<Long, Set<Director>> directorsByFilm = loadDirectorsForFilms(films);
+        films.forEach(film -> {
+            film.setGenres(genresByFilm.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirector(directorsByFilm.getOrDefault(film.getId(), new HashSet<>()));
+        });
     }
 
-    private Map<Long, Set<Genre>> loadAllGenres() {
-        List<Map<String, Object>> rows = jdbcTemplate.query(FIND_GENRES_FOR_FILMS,
-                (rs, rowNum) -> Map.of("filmId", rs.getLong("film_id"), "genreId", rs.getInt("genre_id"), "genreName", rs.getString("name")));
-        Map<Long, Set<Genre>> result = new HashMap<>();
-        for (Map<String, Object> row : rows) {
-            Long filmId = ((Number) row.get("filmId")).longValue();
-            Genre genre = new Genre((int) row.get("genreId"), (String) row.get("genreName"));
-            result.computeIfAbsent(filmId, k -> new HashSet<>()).add(genre);
-        }
-        return result;
+    private void enrichFilm(Film film) {
+        Map<Long, Set<Genre>> genresByFilm = loadGenresForFilms(List.of(film));
+        Map<Long, Set<Director>> directorsByFilm = loadDirectorsForFilms(List.of(film));
+
+        film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
+        film.setDirector(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
     }
 
-    private Map<Long, Set<Director>> loadAllDirectors() {
-        List<Map<String, Object>> rows = jdbcTemplate.query(FIND_DIRECTORS_FOR_FILMS,
-                (rs, rowNum) -> Map.of("filmId", rs.getLong("film_id"), "directorId", rs.getInt("director_id"), "directorName", rs.getString("name")));
-        Map<Long, Set<Director>> result = new HashMap<>();
-        for (Map<String, Object> row : rows) {
-            Long filmId = ((Number) row.get("filmId")).longValue();
-            Long directorId = ((Number) row.get("directorId")).longValue();
-            Director director = new Director(directorId, (String) row.get("directorName"));
-            result.computeIfAbsent(filmId, k -> new HashSet<>()).add(director);
-        }
-        return result;
+    private Map<Long, Set<Genre>> loadGenresForFilms(List<Film> films) {
+        List<Long> filmIds = films.stream().map(Film::getId).toList();
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("filmIds", filmIds);
+
+        return namedJdbc.query(FIND_GENRES_FOR_FILMS, params, rs -> {
+            Map<Long, Set<Genre>> genresByFilm = new HashMap<>();
+
+            while (rs.next()) {
+                Long filmId = rs.getLong("film_id");
+                Genre genre = new Genre(rs.getInt("genre_id"), rs.getString("name"));
+                genresByFilm.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
+            }
+            return genresByFilm;
+        });
+    }
+
+    private Map<Long, Set<Director>> loadDirectorsForFilms(List<Film> films) {
+        List<Long> filmIds = films.stream().map(Film::getId).toList();
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("filmIds", filmIds);
+
+        return namedJdbc.query(FIND_DIRECTORS_FOR_FILMS, params, rs -> {
+            Map<Long, Set<Director>> directorsByFilm = new HashMap<>();
+
+            while (rs.next()) {
+                Long filmId = rs.getLong("film_id");
+                Director director = new Director(rs.getLong("director_id"), rs.getString("name"));
+                directorsByFilm.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(director);
+            }
+            return directorsByFilm;
+        });
     }
 
     @Override
