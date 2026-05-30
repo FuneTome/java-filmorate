@@ -1,24 +1,3 @@
-DELETE FROM review_reactions;
-DELETE FROM reviews;
-
-DELETE FROM director_film;
-DELETE FROM film_genre;
-DELETE FROM film_like;
-
-DELETE FROM friendship;
-
-DELETE FROM events;
-
-DELETE FROM users;
-DELETE FROM film;
-DELETE FROM director;
-
-ALTER TABLE users ALTER COLUMN user_id RESTART WITH 1;
-ALTER TABLE film ALTER COLUMN film_id RESTART WITH 1;
-ALTER TABLE director ALTER COLUMN director_id RESTART WITH 1;
-ALTER TABLE reviews ALTER COLUMN review_id RESTART WITH 1;
-ALTER TABLE events ALTER COLUMN event_id RESTART WITH 1;
-
 MERGE INTO rating (rating_id, name) KEY(rating_id) VALUES (1, 'G');
 MERGE INTO rating (rating_id, name) KEY(rating_id) VALUES (2, 'PG');
 MERGE INTO rating (rating_id, name) KEY(rating_id) VALUES (3, 'PG-13');
