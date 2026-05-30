@@ -33,10 +33,31 @@ public class FilmDbStorage implements FilmStorage {
             "INSERT INTO Film_genre (film_id, genre_id) VALUES (?, ?)";
     private static final String INSERT_FILM_DIRECTOR =
             "INSERT INTO Director_film (film_id, director_id) VALUES (?, ?)";
-    private static final String FIND_FILM_BY_ID =
-            "SELECT film_id, name, description, release_date, duration, rating_id FROM Film WHERE film_id = ?";
-    private static final String FIND_ALL_FILMS =
-            "SELECT film_id, name, description, release_date, duration, rating_id FROM Film";
+    private static final String FIND_FILM_BY_ID = """
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   r.rating_id,
+                   r.name AS rating_name
+                   FROM film f
+                   JOIN rating r
+                       ON f.rating_id = r.rating_id
+                   WHERE f.film_id = ?
+            """;
+    private static final String FIND_ALL_FILMS = """
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   r.rating_id,
+                   r.name AS rating_name
+                   FROM Film f
+                   JOIN rating r
+                       ON f.rating_id = r.rating_id
+            """;
     private static final String COUNT_FILM_BY_ID =
             "SELECT COUNT(*) FROM Film WHERE film_id = ?";
     private static final String FIND_GENRES_FOR_FILMS = """
@@ -71,10 +92,13 @@ public class FilmDbStorage implements FilmStorage {
                    f.description,
                    f.release_date,
                    f.duration,
-                   f.rating_id
+                   r.rating_id,
+                   r.name AS rating_name
             FROM Film f
             JOIN Director_film df
                 ON f.film_id = df.film_id
+            JOIN rating r
+                ON f.rating_id = r.rating_id
             WHERE df.director_id = ?
             ORDER BY f.release_date ASC, f.film_id ASC
             """;
@@ -84,14 +108,17 @@ public class FilmDbStorage implements FilmStorage {
                    f.description,
                    f.release_date,
                    f.duration,
-                   f.rating_id
+                   r.rating_id,
+                   r.name AS rating_name
             FROM Film f
             JOIN Director_film df
                 ON f.film_id = df.film_id
             LEFT JOIN Film_like fl
                 ON f.film_id = fl.film_id
+            jOIN rating r
+                ON f.rating_id = r.rating_id
             WHERE df.director_id = ?
-            GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id
+            GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, r.rating_id, r.name
             ORDER BY COUNT(fl.user_id) DESC
             """;
     private static final String FIND_FILM_BY_PARAMS_BASE = """
@@ -100,7 +127,8 @@ public class FilmDbStorage implements FilmStorage {
                    f.description,
                    f.release_date,
                    f.duration,
-                   f.rating_id
+                   r.rating_id,
+                   r.name AS rating_name
             FROM film f
             LEFT JOIN film_like fl
                 ON f.film_id = fl.film_id
@@ -108,6 +136,8 @@ public class FilmDbStorage implements FilmStorage {
                 ON f.film_id = df.film_id
             LEFT JOIN director d
                 ON d.director_id = df.director_id
+            LEFT JOIN rating r
+                ON f.rating_id = r.rating_id
             """;
     private static final String DELETE_FILM = "DELETE FROM Film WHERE film_id = ?";
 
@@ -183,11 +213,14 @@ public class FilmDbStorage implements FilmStorage {
                        f.description,
                        f.release_date,
                        f.duration,
-                       f.rating_id,
+                       r.rating_id,
+                       r.name AS rating_name,
                        COUNT(fl.user_id) AS like_count
                 FROM film f
                 LEFT JOIN film_like fl
                     ON f.film_id = fl.film_id
+                LEFT JOIN rating r
+                    ON f.rating_id = r.rating_id
                 """);
         List<Object> params = new ArrayList<>();
         List<String> conditions = new ArrayList<>();
@@ -203,7 +236,17 @@ public class FilmDbStorage implements FilmStorage {
         if (!conditions.isEmpty()) {
             sql.append("WHERE ").append(String.join(" AND ", conditions)).append(" ");
         }
-        sql.append("GROUP BY f.film_id ORDER BY like_count DESC, f.film_id ASC LIMIT ?");
+        sql.append("""
+                GROUP BY f.film_id,
+                         f.name,
+                         f.description,
+                         f.release_date,
+                         f.duration,
+                         r.rating_id,
+                         r.name
+                ORDER BY like_count DESC, f.film_id ASC
+                LIMIT ?
+                """);
         params.add(count);
         List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
         enrichFilms(films);
@@ -246,7 +289,8 @@ public class FilmDbStorage implements FilmStorage {
                          f.description,
                          f.release_date,
                          f.duration,
-                         f.rating_id
+                         r.rating_id,
+                         r.name
                 ORDER BY COUNT(DISTINCT fl.user_id) DESC
                 """);
 
@@ -262,7 +306,13 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
-                SELECT f.*
+                SELECT f.film_id,
+                       f.name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       r.rating_id,
+                       r.name AS rating_name
                 FROM film f
                 JOIN film_like l1
                     ON f.film_id = l1.film_id AND l1.user_id = ?
@@ -270,7 +320,15 @@ public class FilmDbStorage implements FilmStorage {
                     ON f.film_id = l2.film_id AND l2.user_id = ?
                 LEFT JOIN film_like all_likes
                     ON f.film_id = all_likes.film_id
-                GROUP BY f.film_id
+                JOIN rating r
+                    ON f.rating_id = r.rating_id
+                GROUP BY f.film_id,
+                         f.name,
+                         f.description,
+                         f.release_date,
+                         f.duration,
+                         r.rating_id,
+                         r.name
                 ORDER BY COUNT(all_likes.user_id) DESC
                 """;
 

@@ -41,8 +41,18 @@ public class UserDbStorage implements UserStorage {
     private static final String CHECK_FRIEND_EXISTS =
             "SELECT COUNT(*) FROM Friendship WHERE user_id = ? AND friend_id = ?";
     private static final String GET_RECOMMENDATION = """
-            SELECT f.* FROM film f
-            JOIN film_like fl ON f.film_id = fl.film_id
+            SELECT f.film_id,
+                   f.name,
+                   f.description,
+                   f.release_date,
+                   f.duration,
+                   r.rating_id,
+                   r.name AS rating_name
+            FROM film f
+            JOIN film_like fl
+                ON f.film_id = fl.film_id
+            JOIN rating r
+                ON f.rating_id = r.rating_id
             WHERE fl.user_id = (
                     SELECT user_id FROM film_like
                     WHERE film_id IN (
