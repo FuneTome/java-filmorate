@@ -18,6 +18,5 @@ public class Film {
     private LocalDate releaseDate;
     private int duration;
     private Set<Genre> genres = new HashSet<>();
-    private Set<Director> director = new HashSet<>();
     private Rating rating;
 }

@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 
 @RestControllerAdvice
 public class ErrorHandler {
-
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFound(NotFoundException e) {

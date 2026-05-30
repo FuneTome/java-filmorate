@@ -6,9 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.mappers.UserRowMapper;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -40,38 +38,6 @@ public class UserDbStorage implements UserStorage {
             "DELETE FROM Friendship WHERE user_id = ? AND friend_id = ?";
     private static final String CHECK_FRIEND_EXISTS =
             "SELECT COUNT(*) FROM Friendship WHERE user_id = ? AND friend_id = ?";
-    private static final String GET_RECOMMENDATION = """
-            SELECT f.film_id,
-                   f.name,
-                   f.description,
-                   f.release_date,
-                   f.duration,
-                   r.rating_id,
-                   r.name AS rating_name
-            FROM film f
-            JOIN film_like fl
-                ON f.film_id = fl.film_id
-            JOIN rating r
-                ON f.rating_id = r.rating_id
-            WHERE fl.user_id = (
-                    SELECT user_id FROM film_like
-                    WHERE film_id IN (
-                        SELECT film_id FROM film_like
-                        WHERE user_id = ?
-                        )
-                    AND user_id != ?
-                    GROUP BY user_id
-                    ORDER BY COUNT(*) DESC
-                    LIMIT 1
-                    )
-            AND f.film_id NOT IN (
-                SELECT film_id FROM film_like
-                WHERE user_id = ?
-                )
-            """;
-    private static final String DELETE_USER = "DELETE FROM Users WHERE user_id = ?";
-
-    private final FilmRowMapper filmRowMapper;
 
     @Override
     public User addUser(User user) {
@@ -109,13 +75,14 @@ public class UserDbStorage implements UserStorage {
     @Override
     public boolean findById(Long id) {
         Integer count = jdbcTemplate.queryForObject(COUNT_USER_BY_ID, Integer.class, id);
-        return count > 0;
+        return count != null && count > 0;
     }
 
     @Override
     public User getById(Long id) {
         try {
-            return jdbcTemplate.queryForObject(FIND_USER_BY_ID, userRowMapper, id);
+            User user = jdbcTemplate.queryForObject(FIND_USER_BY_ID, userRowMapper, id);
+            return user;
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchElementException("Пользователь с id=" + id + " не найден");
         }
@@ -123,24 +90,17 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getFriends(long userId) {
-        return jdbcTemplate.query("""
-                        SELECT u.* FROM users u
-                        JOIN friendship f
-                            ON u.user_id = f.friend_id
-                        WHERE f.user_id = ? AND f.friendship_status_id = 2
-                        """,
+        return jdbcTemplate.query(
+                "SELECT u.* FROM users u JOIN friendship f ON u.user_id = f.friend_id WHERE f.user_id = ? AND f.friendship_status_id = 2",
                 userRowMapper, userId);
     }
 
     @Override
     public List<User> getCommonFriends(long userId, long otherId) {
-        return jdbcTemplate.query("""
-                        SELECT u.* FROM users u
-                        JOIN friendship f1
-                            ON u.user_id = f1.friend_id AND f1.user_id = ? AND f1.friendship_status_id = 2
-                        JOIN friendship f2
-                            ON u.user_id = f2.friend_id AND f2.user_id = ? AND f2.friendship_status_id = 2
-                        """,
+        return jdbcTemplate.query(
+                "SELECT u.* FROM users u " +
+                        "JOIN friendship f1 ON u.user_id = f1.friend_id AND f1.user_id = ? AND f1.friendship_status_id = 2 " +
+                        "JOIN friendship f2 ON u.user_id = f2.friend_id AND f2.user_id = ? AND f2.friendship_status_id = 2",
                 userRowMapper, userId, otherId);
     }
 
@@ -153,7 +113,7 @@ public class UserDbStorage implements UserStorage {
     @Override
     public boolean addFriend(Long userId, Long friendId) {
         Integer count = jdbcTemplate.queryForObject(CHECK_FRIEND_EXISTS, Integer.class, userId, friendId);
-        if (count > 0) {
+        if (count != null && count > 0) {
             return false;
         }
         jdbcTemplate.update(INSERT_FRIEND, userId, friendId);
@@ -164,15 +124,5 @@ public class UserDbStorage implements UserStorage {
     public boolean removeFriend(Long userId, Long friendId) {
         int rowsAffected = jdbcTemplate.update(DELETE_FRIEND, userId, friendId);
         return rowsAffected > 0;
-    }
-
-    @Override
-    public List<Film> getRecommendations(Long id) {
-        return jdbcTemplate.query(GET_RECOMMENDATION, filmRowMapper, id, id, id);
-    }
-
-    @Override
-    public void deleteUser(Long id) {
-        jdbcTemplate.update(DELETE_USER, id);
     }
 }
