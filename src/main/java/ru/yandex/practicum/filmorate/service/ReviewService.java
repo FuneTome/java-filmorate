@@ -34,7 +34,7 @@ public class ReviewService {
 
     public List<ReviewDto> getReviews(Long filmId, int count) throws NotFoundException {
         if (filmId != null) {
-            filmExists(filmId);
+            filmThrowIf(filmId);
         }
         return storage.getReviews(filmId, count).stream()
                 .map(mapper::toDto).collect(Collectors.toCollection(ArrayList::new));
@@ -42,8 +42,8 @@ public class ReviewService {
 
     public ReviewDto addReview(ReviewRequest reviewRequest) {
         log.debug("Добавление отзыва {}", reviewRequest);
-        filmExists(reviewRequest.getFilmId());
-        userExists(reviewRequest.getUserId());
+        filmThrowIf(reviewRequest.getFilmId());
+        userThrowIf(reviewRequest.getUserId());
 
         Review review = mapper.toReview(reviewRequest);
 
@@ -65,7 +65,7 @@ public class ReviewService {
     public ReviewDto updateReview(ReviewUpdateDto reviewUpdateDto) {
         Long reviewId = reviewUpdateDto.getReviewId();
         Long filmId = reviewUpdateDto.getFilmId();
-        filmExists(filmId);
+        filmThrowIf(filmId);
 
         log.debug("Обновление отзыва c id {}", reviewId);
 
@@ -98,7 +98,7 @@ public class ReviewService {
     }
 
     public void deleteReviewById(Long reviewId) {
-        reviewExists(reviewId);
+        reviewThrowIf(reviewId);
         ReviewDto review = getReviewById(reviewId);
         storage.deleteReviewById(reviewId);
 
@@ -116,8 +116,8 @@ public class ReviewService {
     public void addReactionOnReview(Long reviewId, Long userId, ReactionType newReactiontype) {
         log.debug("Добавление реакции на отзыв. userId {}, reviewId {}", userId, reviewId);
 
-        userExists(userId);
-        reviewExists(reviewId);
+        userThrowIf(userId);
+        reviewThrowIf(reviewId);
 
         ReactionType oldReactionTyp = storage.getReaction(reviewId, userId).orElse(null);
         int delta = calculateReviewUsefulDelta(oldReactionTyp, newReactiontype);
@@ -130,37 +130,34 @@ public class ReviewService {
 
     public void removeReactionOnReview(Long reviewId, Long userId, ReactionType reactiontype) {
         log.debug("Удаление реакции с отзыва. userId {}, reviewId {}", userId, reviewId);
-        userExists(userId);
-        reviewExists(reviewId);
+        userThrowIf(userId);
+        reviewThrowIf(reviewId);
 
         ReactionType oldReactionTyp = storage.getReaction(reviewId, userId).orElse(null);
 
-        if (oldReactionTyp != null) {
-            if (oldReactionTyp == reactiontype) {
-                if (oldReactionTyp == ReactionType.LIKE) {
-                    storage.updateUseful(-1, reviewId);
-                } else {
-                    storage.updateUseful(1, reviewId);
-                }
-
-                storage.deleteReaction(reviewId, userId);
+        if (oldReactionTyp != null && oldReactionTyp == reactiontype) {
+            if (oldReactionTyp == ReactionType.LIKE) {
+                storage.updateUseful(-1, reviewId);
+            } else {
+                storage.updateUseful(1, reviewId);
             }
+            storage.deleteReaction(reviewId, userId);
         }
     }
 
-    private void reviewExists(Long reviewId) {
+    private void reviewThrowIf(Long reviewId) {
         if (storage.getReviewById(reviewId).isEmpty()) {
             throw new NotFoundException("Отзыв c id - " + reviewId + " не найден");
         }
     }
 
-    private void userExists(Long userId) {
+    private void userThrowIf(Long userId) {
         if (!userStorage.findById(userId)) {
             throw new NotFoundException("Пользователь c id - " + userId + " не найден");
         }
     }
 
-    private void filmExists(Long filmId) {
+    private void filmThrowIf(Long filmId) {
         if (!filmStorage.findById(filmId)) {
             throw new NotFoundException("Фильм c id - " + filmId + " не найден");
         }
